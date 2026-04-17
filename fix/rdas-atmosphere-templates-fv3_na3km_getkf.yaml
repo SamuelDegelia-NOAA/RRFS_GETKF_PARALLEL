@@ -96,7 +96,7 @@ atmosphere_background_time_iso: @ATMOSPHERE_BACKGROUND_TIME_ISO@
 atmosphere_background_time_prefix: ""
 filename_core: fv_core.res.tile1.nc
 filename_trcr: fv_tracer.res.tile1.nc
-filename_phys: phy_data.nc
+filename_phys: phy_data.nc_prepdbz
 filename_sfcd: sfc_data.nc
 filename_sfcw: fv_srf_wnd.res.tile1.nc
 filename_cplr: coupler.res

@@ -8,11 +8,10 @@ set -euox pipefail
 echo ${envfile}
 source "${envfile}"
 
-DO_ENKF_RADAR_REF="FALSE"
 nens=30
-
 CRES="C3463"
 output_ens="FALSE"
+DO_ENKF_RADAR_REF="FALSE"
 FIX_JEDI=${rrfsworkflow}/fix/jedi
 FIX_GSI=${rrfsworkflow}/fix/gsi
 PREDEF_GRID_NAME=RRFS_NA_3km
@@ -107,9 +106,13 @@ done
 echo "Running prep_phydata_dbz.py in parallel for all members..."
 for imem in $(seq 1 $nens); do
   memcharv0="mem"$(printf %03i $imem)
-  echo "python prep_phydata_dbz.py data/inputs/${memcharv0}/phy_data.nc"
+  echo "python prep_phydata_dbz.py data/inputs/${memcharv0}/phy_data.nc > prep_phydata_${memcharv0}.log 2>&1"
 done | parallel -j 30
-exit
+echo "phy_data.nc preprocessing completed successfully!!!"
+
+# View timing for all members
+echo "Timing summary:"
+grep "Total time" prep_phydata_*.log
 
 #
 #-----------------------------------------------------------------------
