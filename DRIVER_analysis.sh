@@ -30,6 +30,39 @@ fi
 script_dir=$(cd "$(dirname "$0")" && pwd)
 source "${script_dir}/scripts/driver_analysis_common.sh"
 
+# Path to the job-submission utility
+submit="${script_dir}/scripts/submit_job.sh"
+
+# -----------------------------------------------------------------------
+# Per-task PBS resource settings.
+# Override any of these environment variables before calling this script
+# to customise queue, account, node counts, or wall-clock limits without
+# editing the task scripts.
+# -----------------------------------------------------------------------
+PBS_ACCOUNT=${PBS_ACCOUNT:-RRFS-DEV}
+PBS_QUEUE=${PBS_QUEUE:-dev}
+
+# Radar reflectivity processing
+RADAR_JOB_NAME=${RADAR_JOB_NAME:-na3km_process_radarref}
+RADAR_SELECT=${RADAR_SELECT:-1:mpiprocs=64:ncpus=64}
+RADAR_WALLTIME=${RADAR_WALLTIME:-00:25:00}
+RADAR_PLACE=${RADAR_PLACE:-excl}
+RADAR_LOG=${RADAR_LOG:-mrms.log}
+
+# BUFR → IODA conversion
+BUFR_JOB_NAME=${BUFR_JOB_NAME:-na3km_ioda_bufr}
+BUFR_SELECT=${BUFR_SELECT:-1:mpiprocs=1:ncpus=1:mem=20G}
+BUFR_WALLTIME=${BUFR_WALLTIME:-00:20:00}
+BUFR_PLACE=${BUFR_PLACE:-excl}
+BUFR_LOG=${BUFR_LOG:-bufr.log}
+
+# GETKF analysis
+GETKF_JOB_NAME=${GETKF_JOB_NAME:-na3km_getkf}
+GETKF_SELECT=${GETKF_SELECT:-40:mpiprocs=40:ompthreads=1:ncpus=40}
+GETKF_WALLTIME=${GETKF_WALLTIME:-01:00:00}
+GETKF_PLACE=${GETKF_PLACE:-vscatter}
+GETKF_LOG=${GETKF_LOG:-getkf.log}
+
 # Get the latest analysis we want to run and setup the run directories
 # Hard-coded now just for debugging
 # TODO: add logic to fetch the latest cycle that is fully done
@@ -72,17 +105,7 @@ anldir='${anldir}'
 getkfyaml='${getkfyaml}'
 EOF
 
-# Build run directories
-#if [ -d ${bufrdir} ]; then
-#  rm -rf ${bufrdir}
-#fi
-#if [ -d ${mrmsdir} ]; then
-#  rm -rf ${mrmsdir}
-#fi
-#if [ -d ${anldir} ]; then
-#  rm -rf ${anldir}
-#fi
-rm bufr.log mrms.log getkf.log
+rm -f bufr.log mrms.log getkf.log
 mkdir -p ${bufrdir}
 mkdir -p ${mrmsdir}
 mkdir -p ${anldir}
@@ -92,18 +115,40 @@ cp ${envfile} ${anldir}
 cp ./scripts/prep_phydata_dbz.py ${anldir}
 
 # Create radar observations
-#job1=$(qsub -v envfile="${envfile}" scripts/exrrfs_process_radar.sh)
+job1=$(bash "${submit}" \
+    -N "${RADAR_JOB_NAME}" \
+    -A "${PBS_ACCOUNT}" \
+    -q "${PBS_QUEUE}" \
+    -l "select=${RADAR_SELECT}" \
+    -l "walltime=${RADAR_WALLTIME}" \
+    -l "place=${RADAR_PLACE}" \
+    -o "${RADAR_LOG}" \
+    -v "envfile=${envfile}" \
+    "${script_dir}/scripts/exrrfs_process_radar.sh")
 
 # Convert prepbufr observations to IODA
-#job2=$(qsub -v envfile="${envfile}" scripts/exrrfs_ioda_bufr.sh)
+job2=$(bash "${submit}" \
+    -N "${BUFR_JOB_NAME}" \
+    -A "${PBS_ACCOUNT}" \
+    -q "${PBS_QUEUE}" \
+    -l "select=${BUFR_SELECT}" \
+    -l "walltime=${BUFR_WALLTIME}" \
+    -l "place=${BUFR_PLACE}" \
+    -o "${BUFR_LOG}" \
+    -v "envfile=${envfile}" \
+    "${script_dir}/scripts/exrrfs_ioda_bufr.sh")
 
-# Now run the GETKF analysis
-#qsub -W depend=afterok:${job1}:${job2} scripts/exrrfs_analysis_enkf_jedi.sh
-qsub -v envfile="${envfile}" scripts/exrrfs_analysis_enkf_jedi.sh
+# Run the GETKF analysis after both upstream jobs complete successfully
+job3=$(bash "${submit}" \
+    -N "${GETKF_JOB_NAME}" \
+    -A "${PBS_ACCOUNT}" \
+    -q "${PBS_QUEUE}" \
+    -l "select=${GETKF_SELECT}" \
+    -l "walltime=${GETKF_WALLTIME}" \
+    -l "place=${GETKF_PLACE}" \
+    -o "${GETKF_LOG}" \
+    -v "envfile=${envfile}" \
+    -W "depend=afterok:${job1}:${job2}" \
+    "${script_dir}/scripts/exrrfs_analysis_enkf_jedi.sh")
 
-# Move output files for better tracking
-exit
-# need to figure out how to wait for the jobs to be done though
-mv bufr.log  bufr_${YYYYMMDD}${HH}.log
-mv mrms.log  mrms_${YYYYMMDD}${HH}.log
-mv getkf.log getkf_${YYYYMMDD}${HH}.log
+echo "Submitted jobs: radar=${job1} bufr=${job2} getkf=${job3}"
