@@ -15,7 +15,7 @@ rrfspath=/lfs/h1/ops/para/com/rrfs/v1.0
 reflpath=/lfs/h1/ops/prod/dcom/ldmdata/obs/upperair/mrms/conus/MergedReflectivityQC
 obsbase=/lfs/h1/ops/prod/com/obsproc/v1.2
 baserundir=/lfs/h2/emc/stmp/samuel.degelia/GETKF_PARALLEL
-getkfyaml=/lfs/h2/emc/da/noscrub/samuel.degelia/parallel_getkf/rdas-atmosphere-templates-fv3_na3km_getkf.yaml
+getkfyaml=/lfs/h2/emc/da/noscrub/samuel.degelia/parallel_getkf/fix/rdas-atmosphere-templates-fv3_na3km_getkf.yaml
 
 # Get the latest analysis we want to run and setup the run directories
 # Hard-coded now just for debugging
@@ -86,14 +86,14 @@ cp ${envfile} ${mrmsdir}
 cp ${envfile} ${anldir}
 
 # Create radar observations
-#job1=$(qsub -v envfile="${envfile}" exrrfs_process_radar.sh)
+#job1=$(qsub -v envfile="${envfile}" scripts/exrrfs_process_radar.sh)
 
 # Convert prepbufr observations to IODA
-#job2=$(qsub -v envfile="${envfile}" exrrfs_ioda_bufr.sh)
+#job2=$(qsub -v envfile="${envfile}" scripts/exrrfs_ioda_bufr.sh)
 
 # Now run the GETKF analysis
-#qsub -W depend=afterok:${job1}:${job2} exrrfs_analysis_enkf_jedi.sh
-qsub -v envfile="${envfile}" exrrfs_analysis_enkf_jedi.sh
+#qsub -W depend=afterok:${job1}:${job2} scripts/exrrfs_analysis_enkf_jedi.sh
+qsub -v envfile="${envfile}" scripts/exrrfs_analysis_enkf_jedi.sh
 
 # Move output files for better tracking
 exit
