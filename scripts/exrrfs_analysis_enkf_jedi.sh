@@ -5,7 +5,7 @@
 #PBS -l walltime=01:00:00
 #PBS -N na3km_getkf_prod
 #PBS -j oe -o getkf.log
-#PBS -l place=excl
+#PBS -l place=vscatter
 
 ################
 ### Settings ###
@@ -227,7 +227,8 @@ fi
 #export OOPS_DEBUG=1
 export OMP_NUM_THREADS=1
 export pgm="fv3jedi_letkf.x"
-jedi_exec="${EXECdir}/bin/${pgm}"
+#jedi_exec="${EXECdir}/bin/${pgm}"
+jedi_exec="${RDASAPP}/bin/${pgm}"
 cp "${jedi_exec}" "${anldir}/${pgm}"
 
 . prep_step
