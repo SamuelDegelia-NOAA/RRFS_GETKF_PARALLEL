@@ -46,18 +46,6 @@ export MPICH_OFI_VERBOSE=1
 export MPICH_MPIIO_HINTS='*.tile1.nc:romio_cb_read=disable,*.sfc_data.nc:romio_cb_read=disable,*.phy_data.nc:romio_cb_read=disable,*.fv_*.res.nc:romio_cb_write=enable,*.sfc_data.nc:romio_cb_write=enable'
 export OMP_STACKSIZE=500M
 export OMP_NUM_THREADS=1 #${TPP_RUN_ANALYSIS}
-if ! [[ "${PBS_NUM_NODES:-}" =~ ^[1-9][0-9]*$ ]]; then
-    echo "ERROR: PBS_NUM_NODES is not a positive integer: '${PBS_NUM_NODES:-}'" >&2
-    exit 1
-fi
-if ! [[ "${PBS_NP:-}" =~ ^[1-9][0-9]*$ ]]; then
-    echo "ERROR: PBS_NP is not a positive integer: '${PBS_NP:-}'" >&2
-    exit 1
-fi
-if (( PBS_NP % PBS_NUM_NODES != 0 )); then
-    echo "ERROR: PBS_NP (${PBS_NP}) is not evenly divisible by PBS_NUM_NODES (${PBS_NUM_NODES})" >&2
-    exit 1
-fi
 APRUN="mpirun -n ${PBS_NP} -ppn $(( PBS_NP / PBS_NUM_NODES )) --cpu-bind core --depth 1"
 
 #

@@ -30,18 +30,6 @@ module load run_analysis_gsi.local
 ulimit -s unlimited
 ulimit -a
 set -euox pipefail
-if ! [[ "${PBS_NUM_NODES:-}" =~ ^[1-9][0-9]*$ ]]; then
-    echo "ERROR: PBS_NUM_NODES is not a positive integer: '${PBS_NUM_NODES:-}'" >&2
-    exit 1
-fi
-if ! [[ "${PBS_NP:-}" =~ ^[1-9][0-9]*$ ]]; then
-    echo "ERROR: PBS_NP is not a positive integer: '${PBS_NP:-}'" >&2
-    exit 1
-fi
-if (( PBS_NP % PBS_NUM_NODES != 0 )); then
-    echo "ERROR: PBS_NP (${PBS_NP}) is not evenly divisible by PBS_NUM_NODES (${PBS_NUM_NODES})" >&2
-    exit 1
-fi
 APRUN="mpiexec -n ${PBS_NP} -ppn $(( PBS_NP / PBS_NUM_NODES ))"
 
 #
