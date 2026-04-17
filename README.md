@@ -1,19 +1,18 @@
-# EMC Repository Template
+# VERY Simple GETKF RRFS Workflow
 
-Getting all the right files in the right place can be a pain. 
-This is a simple template repository that you can use to ensure you have all the right files present in your repo.
+This tool performs a GETKF analysis whenever the staged RRFS Workflow ensemble becomes available.
 
-## Files you need
+It only performs three tasks:
 
-These should be at the top level of your repository:
+1. Convert prepbufr observations to IODA format
+2. Generate reflectivity IODA observations from MRMS data
+3. Run a GETKF analysis
 
-* `README.md` - The `README.md` file should have a short section at the bottom
-  called "DISCLAIMER", with a really brief statement saying that code is provided on an "as is" basis, and the user assumes responsibility for its use.
-* `LICENSE` - The text of the `CC0` license.
-* `DISCLAIMER` - Disclaimer 
-   
-## License
+It can either be run in standalone mode such as through:
 
-This project is part of NOAA-EMC Ecosystem. 
+`./DRIVER_analysis.sh /lfs/h1/ops/para/com/rrfs/v1.0/enkfrrfs.20260417/15`
 
-See LICENSE and DISCLAIMER for details.
+Or it can be automated to run on the latest ensemble data available on Cactus:
+
+`*/5 * * * * /path/to/RRFS_GETKF_PARALLEL/DRIVER_analysis_auto.sh`
+
