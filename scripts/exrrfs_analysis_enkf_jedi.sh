@@ -11,10 +11,8 @@ source "${envfile}"
 DO_ENKF_RADAR_REF="FALSE"
 nens=30
 
-#ncores=2400
-#ppn=30
-ncores=1600
-ppn=40
+: "${GETKF_NCORES:?GETKF_NCORES is required (set in DRIVER_analysis.sh and pass with submit_job.sh)}"
+: "${GETKF_PPN:?GETKF_PPN is required (set in DRIVER_analysis.sh and pass with submit_job.sh)}"
 
 CRES="C3463"
 output_ens="FALSE"
@@ -51,7 +49,7 @@ export MPICH_OFI_VERBOSE=1
 export MPICH_MPIIO_HINTS='*.tile1.nc:romio_cb_read=disable,*.sfc_data.nc:romio_cb_read=disable,*.phy_data.nc:romio_cb_read=disable,*.fv_*.res.nc:romio_cb_write=enable,*.sfc_data.nc:romio_cb_write=enable'
 export OMP_STACKSIZE=500M
 export OMP_NUM_THREADS=1 #${TPP_RUN_ANALYSIS}
-APRUN="mpirun -n ${ncores} -ppn ${ppn} --cpu-bind core --depth 1"
+APRUN="mpirun -n ${GETKF_NCORES} -ppn ${GETKF_PPN} --cpu-bind core --depth 1"
 
 #
 #-----------------------------------------------------------------------

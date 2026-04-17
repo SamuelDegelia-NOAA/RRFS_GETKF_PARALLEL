@@ -7,8 +7,8 @@ cd ${PBS_O_WORKDIR}
 set -euox pipefail
 source "${envfile}"
 
-NNODES_PROC_RADAR=1
-PPN_PROC_RADAR=64
+: "${RADAR_NNODES_PROC_RADAR:?RADAR_NNODES_PROC_RADAR is required (set in DRIVER_analysis.sh and pass with submit_job.sh)}"
+: "${RADAR_PPN_PROC_RADAR:?RADAR_PPN_PROC_RADAR is required (set in DRIVER_analysis.sh and pass with submit_job.sh)}"
 RADAR_REF_THINNING=2 # used for enkf
 RADARREFL_TIMELEVEL=( "0" )
 RADARREFL_MINS=( \
@@ -32,8 +32,8 @@ module load run_analysis_gsi.local
 ulimit -s unlimited
 ulimit -a
 set -euox pipefail
-ncores=$(( NNODES_PROC_RADAR*PPN_PROC_RADAR))
-APRUN="mpiexec -n ${ncores} -ppn ${PPN_PROC_RADAR}"
+ncores=$(( RADAR_NNODES_PROC_RADAR*RADAR_PPN_PROC_RADAR ))
+APRUN="mpiexec -n ${ncores} -ppn ${RADAR_PPN_PROC_RADAR}"
 
 #
 #-----------------------------------------------------------------------

@@ -45,6 +45,8 @@ PBS_QUEUE=${PBS_QUEUE:-dev}
 # Radar reflectivity processing
 RADAR_JOB_NAME=${RADAR_JOB_NAME:-na3km_process_radarref}
 RADAR_SELECT=${RADAR_SELECT:-1:mpiprocs=64:ncpus=64}
+RADAR_NNODES_PROC_RADAR=${RADAR_NNODES_PROC_RADAR:-1}
+RADAR_PPN_PROC_RADAR=${RADAR_PPN_PROC_RADAR:-64}
 RADAR_WALLTIME=${RADAR_WALLTIME:-00:25:00}
 RADAR_PLACE=${RADAR_PLACE:-excl}
 RADAR_LOG=${RADAR_LOG:-mrms.log}
@@ -59,6 +61,8 @@ BUFR_LOG=${BUFR_LOG:-bufr.log}
 # GETKF analysis
 GETKF_JOB_NAME=${GETKF_JOB_NAME:-na3km_getkf}
 GETKF_SELECT=${GETKF_SELECT:-40:mpiprocs=40:ompthreads=1:ncpus=40}
+GETKF_NCORES=${GETKF_NCORES:-1600}
+GETKF_PPN=${GETKF_PPN:-40}
 GETKF_WALLTIME=${GETKF_WALLTIME:-01:00:00}
 GETKF_PLACE=${GETKF_PLACE:-vscatter}
 GETKF_LOG=${GETKF_LOG:-getkf.log}
@@ -123,7 +127,7 @@ job1=$(bash "${submit}" \
     -l "walltime=${RADAR_WALLTIME}" \
     -l "place=${RADAR_PLACE}" \
     -o "${RADAR_LOG}" \
-    -v "envfile=${envfile}" \
+    -v "envfile=${envfile},RADAR_NNODES_PROC_RADAR=${RADAR_NNODES_PROC_RADAR},RADAR_PPN_PROC_RADAR=${RADAR_PPN_PROC_RADAR}" \
     "${script_dir}/scripts/exrrfs_process_radar.sh")
 
 # Convert prepbufr observations to IODA
@@ -147,7 +151,7 @@ job3=$(bash "${submit}" \
     -l "walltime=${GETKF_WALLTIME}" \
     -l "place=${GETKF_PLACE}" \
     -o "${GETKF_LOG}" \
-    -v "envfile=${envfile}" \
+    -v "envfile=${envfile},GETKF_NCORES=${GETKF_NCORES},GETKF_PPN=${GETKF_PPN}" \
     -W "depend=afterok:${job1}:${job2}" \
     "${script_dir}/scripts/exrrfs_analysis_enkf_jedi.sh")
 
