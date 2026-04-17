@@ -58,7 +58,12 @@ extract_mpiprocs() {
         fi
     done
 
-    if [[ "${count}" -ne 1 ]] || ! [[ "${mpiprocs}" =~ ^[0-9]+$ ]]; then
+    if [[ "${count}" -ne 1 ]]; then
+        echo "ERROR: select spec must contain exactly one mpiprocs=<int> token: ${select_spec}" >&2
+        return 1
+    fi
+    if ! [[ "${mpiprocs}" =~ ^[0-9]+$ ]]; then
+        echo "ERROR: mpiprocs value must be an integer in select spec: ${select_spec}" >&2
         return 1
     fi
     echo "${mpiprocs}"

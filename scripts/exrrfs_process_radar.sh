@@ -7,8 +7,8 @@ cd ${PBS_O_WORKDIR}
 set -euox pipefail
 source "${envfile}"
 
-: "${RADAR_NNODES_PROC_RADAR:?RADAR_NNODES_PROC_RADAR is required (set in DRIVER_analysis.sh and pass with submit_job.sh)}"
-: "${RADAR_PPN_PROC_RADAR:?RADAR_PPN_PROC_RADAR is required (set in DRIVER_analysis.sh and pass with submit_job.sh)}"
+: "${RADAR_NNODES_PROC_RADAR:?RADAR_NNODES_PROC_RADAR is required}"
+: "${RADAR_PPN_PROC_RADAR:?RADAR_PPN_PROC_RADAR is required}"
 RADAR_REF_THINNING=2 # used for enkf
 RADARREFL_TIMELEVEL=( "0" )
 RADARREFL_MINS=( \

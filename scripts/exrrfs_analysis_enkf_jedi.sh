@@ -11,8 +11,8 @@ source "${envfile}"
 DO_ENKF_RADAR_REF="FALSE"
 nens=30
 
-: "${GETKF_NCORES:?GETKF_NCORES is required (set in DRIVER_analysis.sh and pass with submit_job.sh)}"
-: "${GETKF_PPN:?GETKF_PPN is required (set in DRIVER_analysis.sh and pass with submit_job.sh)}"
+: "${GETKF_NCORES:?GETKF_NCORES is required}"
+: "${GETKF_PPN:?GETKF_PPN is required}"
 
 CRES="C3463"
 output_ens="FALSE"
