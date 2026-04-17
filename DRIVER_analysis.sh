@@ -45,8 +45,14 @@ PBS_QUEUE=${PBS_QUEUE:-dev}
 # Radar reflectivity processing
 RADAR_JOB_NAME=${RADAR_JOB_NAME:-na3km_process_radarref}
 RADAR_SELECT=${RADAR_SELECT:-1:mpiprocs=64:ncpus=64}
-RADAR_NNODES_PROC_RADAR=${RADAR_NNODES_PROC_RADAR:-1}
-RADAR_PPN_PROC_RADAR=${RADAR_PPN_PROC_RADAR:-64}
+radar_nodes_default=${RADAR_SELECT%%:*}
+radar_ppn_default=$(echo "${RADAR_SELECT}" | sed -n 's/.*mpiprocs=\([0-9][0-9]*\).*/\1/p')
+if ! [[ "${radar_nodes_default}" =~ ^[0-9]+$ ]] || ! [[ "${radar_ppn_default}" =~ ^[0-9]+$ ]]; then
+    echo "ERROR: unable to derive radar node/core settings from RADAR_SELECT=${RADAR_SELECT}" >&2
+    exit 1
+fi
+RADAR_NNODES_PROC_RADAR=${RADAR_NNODES_PROC_RADAR:-${radar_nodes_default}}
+RADAR_PPN_PROC_RADAR=${RADAR_PPN_PROC_RADAR:-${radar_ppn_default}}
 RADAR_WALLTIME=${RADAR_WALLTIME:-00:25:00}
 RADAR_PLACE=${RADAR_PLACE:-excl}
 RADAR_LOG=${RADAR_LOG:-mrms.log}
@@ -61,8 +67,14 @@ BUFR_LOG=${BUFR_LOG:-bufr.log}
 # GETKF analysis
 GETKF_JOB_NAME=${GETKF_JOB_NAME:-na3km_getkf}
 GETKF_SELECT=${GETKF_SELECT:-40:mpiprocs=40:ompthreads=1:ncpus=40}
-GETKF_NCORES=${GETKF_NCORES:-1600}
-GETKF_PPN=${GETKF_PPN:-40}
+getkf_nodes_default=${GETKF_SELECT%%:*}
+getkf_ppn_default=$(echo "${GETKF_SELECT}" | sed -n 's/.*mpiprocs=\([0-9][0-9]*\).*/\1/p')
+if ! [[ "${getkf_nodes_default}" =~ ^[0-9]+$ ]] || ! [[ "${getkf_ppn_default}" =~ ^[0-9]+$ ]]; then
+    echo "ERROR: unable to derive GETKF node/core settings from GETKF_SELECT=${GETKF_SELECT}" >&2
+    exit 1
+fi
+GETKF_PPN=${GETKF_PPN:-${getkf_ppn_default}}
+GETKF_NCORES=${GETKF_NCORES:-$(( getkf_nodes_default*GETKF_PPN ))}
 GETKF_WALLTIME=${GETKF_WALLTIME:-01:00:00}
 GETKF_PLACE=${GETKF_PLACE:-vscatter}
 GETKF_LOG=${GETKF_LOG:-getkf.log}
