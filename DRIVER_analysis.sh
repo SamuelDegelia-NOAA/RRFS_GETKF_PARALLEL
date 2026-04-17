@@ -89,6 +89,7 @@ mkdir -p ${anldir}
 cp ${envfile} ${bufrdir}
 cp ${envfile} ${mrmsdir}
 cp ${envfile} ${anldir}
+cp ./scripts/prep_phydata_dbz.py ${anldir}
 
 # Create radar observations
 #job1=$(qsub -v envfile="${envfile}" scripts/exrrfs_process_radar.sh)

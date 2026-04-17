@@ -110,6 +110,19 @@ for imem in  $(seq 1 $nens); do
 
 done
 
+#
+#-----------------------------------------------------------------------
+#
+# Pre-process the phy_data for reflectivity assimilation
+#
+#-----------------------------------------------------------------------
+#
+echo "Running prep_phydata_dbz.py in parallel for all members..."
+for imem in $(seq 1 $nens); do
+  memcharv0="mem"$(printf %03i $imem)
+  echo "python prep_phydata_dbz.py data/inputs/${memcharv0}/phy_data.nc"
+done | parallel -j 30
+exit
 
 #
 #-----------------------------------------------------------------------
