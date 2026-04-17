@@ -58,43 +58,26 @@ GETKF_WALLTIME="01:00:00"
 GETKF_PLACE="vscatter"
 GETKF_LOG="getkf.log"
 
-extract_pbs_values_from_select() {
-    local select_spec="$1"
-    local select_name="$2"
-    local np=""
-    local nodes=""
-
-    if [[ "${select_spec}" =~ ^[[:space:]]*([0-9]+)[[:space:]]*: ]]; then
-        nodes="${BASH_REMATCH[1]}"
-    else
-        echo "ERROR: ${select_name} must start with <nodes>: ... Got: ${select_spec}" >&2
-        return 1
-    fi
-
-    if [[ "${select_spec}" =~ (^|:)[[:space:]]*mpiprocs[[:space:]]*=[[:space:]]*([0-9]+)[[:space:]]*(:|$) ]]; then
-        np="${BASH_REMATCH[2]}"
-    else
-        echo "ERROR: ${select_name} must include mpiprocs=<N>. Got: ${select_spec}" >&2
-        return 1
-    fi
-
-    echo "${np} ${nodes}"
-}
-
-if ! RADAR_PBS_VALUES=$(extract_pbs_values_from_select "${RADAR_SELECT}" "RADAR_SELECT"); then
+RADAR_PBS_NP=$(echo "${RADAR_SELECT}" | grep -oP 'mpiprocs=\K[0-9]+')
+RADAR_PBS_NUM_NODES=$(echo "${RADAR_SELECT}" | grep -oP '^[0-9]+')
+if [[ -z "${RADAR_PBS_NP}" || -z "${RADAR_PBS_NUM_NODES}" ]]; then
+    echo "ERROR: RADAR_SELECT must contain '<nodes>:' and 'mpiprocs=<N>'. Got: ${RADAR_SELECT}" >&2
     exit 1
 fi
-read -r RADAR_PBS_NP RADAR_PBS_NUM_NODES <<< "${RADAR_PBS_VALUES}"
 
-if ! BUFR_PBS_VALUES=$(extract_pbs_values_from_select "${BUFR_SELECT}" "BUFR_SELECT"); then
+BUFR_PBS_NP=$(echo "${BUFR_SELECT}" | grep -oP 'mpiprocs=\K[0-9]+')
+BUFR_PBS_NUM_NODES=$(echo "${BUFR_SELECT}" | grep -oP '^[0-9]+')
+if [[ -z "${BUFR_PBS_NP}" || -z "${BUFR_PBS_NUM_NODES}" ]]; then
+    echo "ERROR: BUFR_SELECT must contain '<nodes>:' and 'mpiprocs=<N>'. Got: ${BUFR_SELECT}" >&2
     exit 1
 fi
-read -r BUFR_PBS_NP BUFR_PBS_NUM_NODES <<< "${BUFR_PBS_VALUES}"
 
-if ! GETKF_PBS_VALUES=$(extract_pbs_values_from_select "${GETKF_SELECT}" "GETKF_SELECT"); then
+GETKF_PBS_NP=$(echo "${GETKF_SELECT}" | grep -oP 'mpiprocs=\K[0-9]+')
+GETKF_PBS_NUM_NODES=$(echo "${GETKF_SELECT}" | grep -oP '^[0-9]+')
+if [[ -z "${GETKF_PBS_NP}" || -z "${GETKF_PBS_NUM_NODES}" ]]; then
+    echo "ERROR: GETKF_SELECT must contain '<nodes>:' and 'mpiprocs=<N>'. Got: ${GETKF_SELECT}" >&2
     exit 1
 fi
-read -r GETKF_PBS_NP GETKF_PBS_NUM_NODES <<< "${GETKF_PBS_VALUES}"
 
 # Get the latest analysis we want to run and setup the run directories
 # Hard-coded now just for debugging
