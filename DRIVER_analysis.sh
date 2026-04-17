@@ -64,14 +64,14 @@ extract_pbs_values_from_select() {
     local np=""
     local nodes=""
 
-    if [[ "${select_spec}" =~ ^([0-9]+): ]]; then
+    if [[ "${select_spec}" =~ ^[[:space:]]*([0-9]+)[[:space:]]*: ]]; then
         nodes="${BASH_REMATCH[1]}"
     else
         echo "ERROR: ${select_name} must start with <nodes>: ... Got: ${select_spec}" >&2
         return 1
     fi
 
-    if [[ "${select_spec}" =~ (^|:)mpiprocs=([0-9]+)(:|$) ]]; then
+    if [[ "${select_spec}" =~ (^|:)[[:space:]]*mpiprocs[[:space:]]*=[[:space:]]*([0-9]+)[[:space:]]*(:|$) ]]; then
         np="${BASH_REMATCH[2]}"
     else
         echo "ERROR: ${select_name} must include mpiprocs=<N>. Got: ${select_spec}" >&2
