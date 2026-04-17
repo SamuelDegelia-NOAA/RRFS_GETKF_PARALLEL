@@ -49,7 +49,7 @@ while [[ $# -gt 0 ]]; do
                 select=*)   select_spec="${2#select=}" ;;
                 walltime=*) walltime="${2#walltime=}" ;;
                 place=*)    place="${2#place=}" ;;
-                *) echo "WARNING: unrecognised -l directive: $2" >&2 ;;
+                *) echo "WARNING: unrecognized -l directive: $2" >&2 ;;
             esac
             shift 2 ;;
         -o) logfile="$2"; shift 2 ;;
@@ -57,7 +57,7 @@ while [[ $# -gt 0 ]]; do
         -W)
             case "$2" in
                 depend=*) depend="${2#depend=}" ;;
-                *) echo "WARNING: unrecognised -W option: $2" >&2 ;;
+                *) echo "WARNING: unrecognized -W option: $2" >&2 ;;
             esac
             shift 2 ;;
         --dry-run) dry_run=1; shift ;;

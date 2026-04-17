@@ -36,7 +36,7 @@ submit="${script_dir}/scripts/submit_job.sh"
 # -----------------------------------------------------------------------
 # Per-task PBS resource settings.
 # Override any of these environment variables before calling this script
-# to customise queue, account, node counts, or wall-clock limits without
+# to customize queue, account, node counts, or wall-clock limits without
 # editing the task scripts.
 # -----------------------------------------------------------------------
 PBS_ACCOUNT=${PBS_ACCOUNT:-RRFS-DEV}
