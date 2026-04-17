@@ -17,8 +17,18 @@ obsbase=/lfs/h1/ops/prod/com/obsproc/v1.2
 baserundir=${BASERUNDIR:-/lfs/h2/emc/stmp/samuel.degelia/GETKF_PARALLEL}
 getkfyaml=/lfs/h2/emc/da/noscrub/samuel.degelia/parallel_getkf/fix/rdas-atmosphere-templates-fv3_na3km_getkf.yaml
 
-echo ${baserundir}
-exit
+if [[ -z "${1:-}" ]]; then
+    echo "Usage: $0 <enspath>"
+    exit 1
+fi
+enspath="$1"
+if [[ ! -d "${enspath}" ]]; then
+    echo "ERROR: enspath does not exist: ${enspath}"
+    exit 1
+fi
+
+script_dir=$(cd "$(dirname "$0")" && pwd)
+source "${script_dir}/scripts/driver_analysis_common.sh"
 
 # Get the latest analysis we want to run and setup the run directories
 # Hard-coded now just for debugging
@@ -26,24 +36,16 @@ exit
 # NOTE: the enspath contains RESTART files for the next forecast hour
 # So enkfrrfs.20260416/15 contains the restart files for 2026041616
 # Thus we need to look for obs at one hour after the restart file
-enspath=/lfs/h1/ops/para/com/rrfs/v1.0/enkfrrfs.20260416/15
 HH=${enspath##*/}
-tmp=${enspath%/*}
-YYYYMMDD=${tmp##*.}
-YYYY=${YYYYMMDD:0:4}
-MM=${YYYYMMDD:4:2}
-DD=${YYYYMMDD:6:2}
-
-# Now increase times by one hour since restart files are 1 h forecasts from this enspath
-HH=$((HH + 1))
-if (( HH >= 24 )); then
-    HH=00
-    # Increment the date by one day
-    YYYYMMDD=$(date -d "${YYYY}-${MM}-${DD} +1 day" +%Y%m%d)
-    YYYY=${YYYYMMDD:0:4}
-    MM=${YYYYMMDD:4:2}
-    DD=${YYYYMMDD:6:2}
+if ! compute_valid_cycle_from_enspath "${enspath}"; then
+    echo "ERROR: invalid cycle time parsed from enspath: ${enspath}"
+    exit 1
 fi
+YYYYMMDD=${VALID_YYYYMMDD}
+HH=${VALID_HH}
+YYYY=${VALID_YYYY}
+MM=${VALID_MM}
+DD=${VALID_DD}
 obspath=${obsbase}/rrfs.${YYYYMMDD}
 bufrdir=${baserundir}/bufr.${YYYYMMDD}${HH}
 mrmsdir=${baserundir}/mrms.${YYYYMMDD}${HH}
@@ -105,8 +107,3 @@ exit
 mv bufr.log  bufr_${YYYYMMDD}${HH}.log
 mv mrms.log  mrms_${YYYYMMDD}${HH}.log
 mv getkf.log getkf_${YYYYMMDD}${HH}.log
-
-
-
-
-
