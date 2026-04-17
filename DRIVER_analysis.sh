@@ -59,21 +59,21 @@ GETKF_PLACE="vscatter"
 GETKF_LOG="getkf.log"
 
 RADAR_PBS_NP=$(echo "${RADAR_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
-RADAR_PBS_NUM_NODES=$(echo "${RADAR_SELECT}" | grep -oP '^\s*\K[0-9]+')
+RADAR_PBS_NUM_NODES=$(echo "${RADAR_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
 if [[ -z "${RADAR_PBS_NP}" || -z "${RADAR_PBS_NUM_NODES}" ]]; then
     echo "ERROR: RADAR_SELECT must contain '<nodes>:' and 'mpiprocs=<N>'. Got: ${RADAR_SELECT}" >&2
     exit 1
 fi
 
 BUFR_PBS_NP=$(echo "${BUFR_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
-BUFR_PBS_NUM_NODES=$(echo "${BUFR_SELECT}" | grep -oP '^\s*\K[0-9]+')
+BUFR_PBS_NUM_NODES=$(echo "${BUFR_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
 if [[ -z "${BUFR_PBS_NP}" || -z "${BUFR_PBS_NUM_NODES}" ]]; then
     echo "ERROR: BUFR_SELECT must contain '<nodes>:' and 'mpiprocs=<N>'. Got: ${BUFR_SELECT}" >&2
     exit 1
 fi
 
 GETKF_PBS_NP=$(echo "${GETKF_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
-GETKF_PBS_NUM_NODES=$(echo "${GETKF_SELECT}" | grep -oP '^\s*\K[0-9]+')
+GETKF_PBS_NUM_NODES=$(echo "${GETKF_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
 if [[ -z "${GETKF_PBS_NP}" || -z "${GETKF_PBS_NUM_NODES}" ]]; then
     echo "ERROR: GETKF_SELECT must contain '<nodes>:' and 'mpiprocs=<N>'. Got: ${GETKF_SELECT}" >&2
     exit 1
