@@ -73,10 +73,7 @@ extract_mpiprocs() {
 RADAR_JOB_NAME=${RADAR_JOB_NAME:-na3km_process_radarref}
 RADAR_SELECT=${RADAR_SELECT:-1:mpiprocs=64:ncpus=64}
 radar_nodes_default=${RADAR_SELECT%%:*}
-if ! radar_ppn_default=$(extract_mpiprocs "${RADAR_SELECT}"); then
-    echo "ERROR: unable to derive radar mpiprocs setting from RADAR_SELECT=${RADAR_SELECT}" >&2
-    exit 1
-fi
+if ! radar_ppn_default=$(extract_mpiprocs "${RADAR_SELECT}"); then exit 1; fi
 if ! [[ "${radar_nodes_default}" =~ ^[0-9]+$ ]]; then
     echo "ERROR: unable to derive radar node/core settings from RADAR_SELECT=${RADAR_SELECT}" >&2
     exit 1
@@ -98,10 +95,7 @@ BUFR_LOG=${BUFR_LOG:-bufr.log}
 GETKF_JOB_NAME=${GETKF_JOB_NAME:-na3km_getkf}
 GETKF_SELECT=${GETKF_SELECT:-40:mpiprocs=40:ompthreads=1:ncpus=40}
 getkf_nodes_default=${GETKF_SELECT%%:*}
-if ! getkf_ppn_default=$(extract_mpiprocs "${GETKF_SELECT}"); then
-    echo "ERROR: unable to derive GETKF mpiprocs setting from GETKF_SELECT=${GETKF_SELECT}" >&2
-    exit 1
-fi
+if ! getkf_ppn_default=$(extract_mpiprocs "${GETKF_SELECT}"); then exit 1; fi
 if ! [[ "${getkf_nodes_default}" =~ ^[0-9]+$ ]]; then
     echo "ERROR: unable to derive GETKF node/core settings from GETKF_SELECT=${GETKF_SELECT}" >&2
     exit 1
