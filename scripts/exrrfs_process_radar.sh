@@ -32,7 +32,7 @@ module load run_analysis_gsi.local
 ulimit -s unlimited
 ulimit -a
 set -euox pipefail
-ncores=$(( RADAR_NNODES_PROC_RADAR*RADAR_PPN_PROC_RADAR ))
+ncores=$(( RADAR_NNODES_PROC_RADAR*RADAR_PPN_PROC_RADAR))
 APRUN="mpiexec -n ${ncores} -ppn ${RADAR_PPN_PROC_RADAR}"
 
 #
