@@ -14,8 +14,11 @@ rrfsworkflow=/lfs/h2/emc/da/noscrub/samuel.degelia/rrfs-workflow_na3km/rrfs-work
 rrfspath=/lfs/h1/ops/para/com/rrfs/v1.0
 reflpath=/lfs/h1/ops/prod/dcom/ldmdata/obs/upperair/mrms/conus/MergedReflectivityQC
 obsbase=/lfs/h1/ops/prod/com/obsproc/v1.2
-baserundir=/lfs/h2/emc/stmp/samuel.degelia/GETKF_PARALLEL
+baserundir=${BASERUNDIR:-/lfs/h2/emc/stmp/samuel.degelia/GETKF_PARALLEL}
 getkfyaml=/lfs/h2/emc/da/noscrub/samuel.degelia/parallel_getkf/fix/rdas-atmosphere-templates-fv3_na3km_getkf.yaml
+
+echo ${baserundir}
+exit
 
 # Get the latest analysis we want to run and setup the run directories
 # Hard-coded now just for debugging
@@ -84,6 +87,7 @@ mkdir -p ${anldir}
 cp ${envfile} ${bufrdir}
 cp ${envfile} ${mrmsdir}
 cp ${envfile} ${anldir}
+cp ./scripts/prep_phydata_dbz.py ${anldir}
 
 # Create radar observations
 #job1=$(qsub -v envfile="${envfile}" scripts/exrrfs_process_radar.sh)
