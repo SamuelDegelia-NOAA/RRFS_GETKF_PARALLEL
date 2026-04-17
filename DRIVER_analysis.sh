@@ -6,8 +6,6 @@
 #   2. Set up analysis run directory using saved fix files
 #   3. Run GETKF analysis
 
-# TODO: where and how to pre-process phy_data files in parallel?
-
 # Settings
 RDASApp=/lfs/h2/emc/da/noscrub/samuel.degelia/RDASApp_redist_iodafix/RDASApp
 rrfsworkflow=/lfs/h2/emc/da/noscrub/samuel.degelia/rrfs-workflow_na3km/rrfs-workflow
@@ -26,11 +24,8 @@ if [[ ! -d "${enspath}" ]]; then
     echo "ERROR: enspath does not exist: ${enspath}"
     exit 1
 fi
-
 script_dir=$(cd "$(dirname "$0")" && pwd)
 source "${script_dir}/scripts/driver_analysis_common.sh"
-
-# Path to the job-submission utility
 submit="${script_dir}/scripts/submit_job.sh"
 
 # -----------------------------------------------------------------------
@@ -39,33 +34,32 @@ submit="${script_dir}/scripts/submit_job.sh"
 # to customize queue, account, node counts, or wall-clock limits without
 # editing the task scripts.
 # -----------------------------------------------------------------------
-PBS_ACCOUNT=${PBS_ACCOUNT:-RRFS-DEV}
-PBS_QUEUE=${PBS_QUEUE:-dev}
+PBS_ACCOUNT="RRFS-DEV"
+PBS_QUEUE="dev"
 
 # Radar reflectivity processing
-RADAR_JOB_NAME=${RADAR_JOB_NAME:-na3km_process_radarref}
-RADAR_SELECT=${RADAR_SELECT:-1:mpiprocs=64:ncpus=64}
-RADAR_WALLTIME=${RADAR_WALLTIME:-00:25:00}
-RADAR_PLACE=${RADAR_PLACE:-excl}
-RADAR_LOG=${RADAR_LOG:-mrms.log}
+RADAR_JOB_NAME="na3km_process_radarref"
+RADAR_SELECT="1:mpiprocs=64:ncpus=64"
+RADAR_WALLTIME="00:25:00"
+RADAR_PALCE="excl"
+RADAR_LOG="mrms.log"
 
-# BUFR → IODA conversion
-BUFR_JOB_NAME=${BUFR_JOB_NAME:-na3km_ioda_bufr}
-BUFR_SELECT=${BUFR_SELECT:-1:mpiprocs=1:ncpus=1:mem=20G}
-BUFR_WALLTIME=${BUFR_WALLTIME:-00:20:00}
-BUFR_PLACE=${BUFR_PLACE:-excl}
-BUFR_LOG=${BUFR_LOG:-bufr.log}
+# BUFR to IODA conversion
+BUFR_JOB_NAME="na3km_ioda_bufr"
+BUFR_SELECT="1:mpiprocs=1:ncpus=1:mem=20G"
+BUFR_WALLTIME="00:20:00"
+BUFR_PLACE="excl"
+BUFR_LOG="bufr.log"
 
 # GETKF analysis
-GETKF_JOB_NAME=${GETKF_JOB_NAME:-na3km_getkf}
-GETKF_SELECT=${GETKF_SELECT:-40:mpiprocs=40:ompthreads=1:ncpus=40}
-GETKF_WALLTIME=${GETKF_WALLTIME:-01:00:00}
-GETKF_PLACE=${GETKF_PLACE:-vscatter}
-GETKF_LOG=${GETKF_LOG:-getkf.log}
+GETKF_JOB_NAME="na3km_getkf"
+GETKF_SELECT="40:mpiprocs=40:ompthreads=1:ncpus=40"
+GETKF_WALLTIME="01:00:00"
+GETKF_PLACE="vscatter"
+GETKF_LOG="getkf.log"
 
 # Get the latest analysis we want to run and setup the run directories
 # Hard-coded now just for debugging
-# TODO: add logic to fetch the latest cycle that is fully done
 # NOTE: the enspath contains RESTART files for the next forecast hour
 # So enkfrrfs.20260416/15 contains the restart files for 2026041616
 # Thus we need to look for obs at one hour after the restart file
