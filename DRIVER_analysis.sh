@@ -42,47 +42,9 @@ submit="${script_dir}/scripts/submit_job.sh"
 PBS_ACCOUNT=${PBS_ACCOUNT:-RRFS-DEV}
 PBS_QUEUE=${PBS_QUEUE:-dev}
 
-extract_mpiprocs() {
-    local select_spec="$1"
-    local token
-    local value
-    local count=0
-    local mpiprocs=""
-
-    IFS=':' read -r -a tokens <<< "${select_spec}"
-    for token in "${tokens[@]}"; do
-        if [[ "${token}" == mpiprocs=* ]]; then
-            value="${token#mpiprocs=}"
-            count=$((count + 1))
-            mpiprocs="${value}"
-        fi
-    done
-
-    if [[ "${count}" -ne 1 ]]; then
-        echo "ERROR: select spec must contain exactly one mpiprocs=<int> token: ${select_spec}" >&2
-        return 1
-    fi
-    if ! [[ "${mpiprocs}" =~ ^[0-9]+$ ]]; then
-        echo "ERROR: mpiprocs value must be an integer in select spec: ${select_spec}" >&2
-        return 1
-    fi
-    echo "${mpiprocs}"
-}
-
 # Radar reflectivity processing
 RADAR_JOB_NAME=${RADAR_JOB_NAME:-na3km_process_radarref}
 RADAR_SELECT=${RADAR_SELECT:-1:mpiprocs=64:ncpus=64}
-radar_nodes_default=${RADAR_SELECT%%:*}
-if ! radar_ppn_default=$(extract_mpiprocs "${RADAR_SELECT}"); then
-    echo "ERROR: failed to extract mpiprocs from RADAR_SELECT=${RADAR_SELECT}" >&2
-    exit 1
-fi
-if ! [[ "${radar_nodes_default}" =~ ^[0-9]+$ ]]; then
-    echo "ERROR: unable to derive radar node/core settings from RADAR_SELECT=${RADAR_SELECT}" >&2
-    exit 1
-fi
-RADAR_NNODES_PROC_RADAR=${RADAR_NNODES_PROC_RADAR:-${radar_nodes_default}}
-RADAR_PPN_PROC_RADAR=${RADAR_PPN_PROC_RADAR:-${radar_ppn_default}}
 RADAR_WALLTIME=${RADAR_WALLTIME:-00:25:00}
 RADAR_PLACE=${RADAR_PLACE:-excl}
 RADAR_LOG=${RADAR_LOG:-mrms.log}
@@ -97,17 +59,6 @@ BUFR_LOG=${BUFR_LOG:-bufr.log}
 # GETKF analysis
 GETKF_JOB_NAME=${GETKF_JOB_NAME:-na3km_getkf}
 GETKF_SELECT=${GETKF_SELECT:-40:mpiprocs=40:ompthreads=1:ncpus=40}
-getkf_nodes_default=${GETKF_SELECT%%:*}
-if ! getkf_ppn_default=$(extract_mpiprocs "${GETKF_SELECT}"); then
-    echo "ERROR: failed to extract mpiprocs from GETKF_SELECT=${GETKF_SELECT}" >&2
-    exit 1
-fi
-if ! [[ "${getkf_nodes_default}" =~ ^[0-9]+$ ]]; then
-    echo "ERROR: unable to derive GETKF node/core settings from GETKF_SELECT=${GETKF_SELECT}" >&2
-    exit 1
-fi
-GETKF_PPN=${GETKF_PPN:-${getkf_ppn_default}}
-GETKF_NCORES=${GETKF_NCORES:-$(( getkf_nodes_default*GETKF_PPN ))}
 GETKF_WALLTIME=${GETKF_WALLTIME:-01:00:00}
 GETKF_PLACE=${GETKF_PLACE:-vscatter}
 GETKF_LOG=${GETKF_LOG:-getkf.log}
@@ -172,7 +123,7 @@ job1=$(bash "${submit}" \
     -l "walltime=${RADAR_WALLTIME}" \
     -l "place=${RADAR_PLACE}" \
     -o "${RADAR_LOG}" \
-    -v "envfile=${envfile},RADAR_NNODES_PROC_RADAR=${RADAR_NNODES_PROC_RADAR},RADAR_PPN_PROC_RADAR=${RADAR_PPN_PROC_RADAR}" \
+    -v "envfile=${envfile}" \
     "${script_dir}/scripts/exrrfs_process_radar.sh")
 
 # Convert prepbufr observations to IODA
@@ -196,7 +147,7 @@ job3=$(bash "${submit}" \
     -l "walltime=${GETKF_WALLTIME}" \
     -l "place=${GETKF_PLACE}" \
     -o "${GETKF_LOG}" \
-    -v "envfile=${envfile},GETKF_NCORES=${GETKF_NCORES},GETKF_PPN=${GETKF_PPN}" \
+    -v "envfile=${envfile}" \
     -W "depend=afterok:${job1}:${job2}" \
     "${script_dir}/scripts/exrrfs_analysis_enkf_jedi.sh")
 
