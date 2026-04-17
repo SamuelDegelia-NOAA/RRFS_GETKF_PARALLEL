@@ -58,6 +58,27 @@ GETKF_WALLTIME="01:00:00"
 GETKF_PLACE="vscatter"
 GETKF_LOG="getkf.log"
 
+RADAR_PBS_NP=$(echo "${RADAR_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
+RADAR_PBS_NUM_NODES=$(echo "${RADAR_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
+if [[ -z "${RADAR_PBS_NP}" || -z "${RADAR_PBS_NUM_NODES}" ]]; then
+    echo "ERROR: RADAR_SELECT must contain '<nodes>:' and 'mpiprocs=<N>'. Got: ${RADAR_SELECT}" >&2
+    exit 1
+fi
+
+BUFR_PBS_NP=$(echo "${BUFR_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
+BUFR_PBS_NUM_NODES=$(echo "${BUFR_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
+if [[ -z "${BUFR_PBS_NP}" || -z "${BUFR_PBS_NUM_NODES}" ]]; then
+    echo "ERROR: BUFR_SELECT must contain '<nodes>:' and 'mpiprocs=<N>'. Got: ${BUFR_SELECT}" >&2
+    exit 1
+fi
+
+GETKF_PBS_NP=$(echo "${GETKF_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
+GETKF_PBS_NUM_NODES=$(echo "${GETKF_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
+if [[ -z "${GETKF_PBS_NP}" || -z "${GETKF_PBS_NUM_NODES}" ]]; then
+    echo "ERROR: GETKF_SELECT must contain '<nodes>:' and 'mpiprocs=<N>'. Got: ${GETKF_SELECT}" >&2
+    exit 1
+fi
+
 # Get the latest analysis we want to run and setup the run directories
 # Hard-coded now just for debugging
 # NOTE: the enspath contains RESTART files for the next forecast hour
@@ -118,6 +139,7 @@ job1=$(bash "${submit}" \
     -l "place=${RADAR_PLACE}" \
     -o "${RADAR_LOG}" \
     -v "envfile=${envfile}" \
+    -v "PBS_NP=${RADAR_PBS_NP},PBS_NUM_NODES=${RADAR_PBS_NUM_NODES}" \
     "${script_dir}/scripts/exrrfs_process_radar.sh")
 
 # Convert prepbufr observations to IODA
@@ -130,6 +152,7 @@ job2=$(bash "${submit}" \
     -l "place=${BUFR_PLACE}" \
     -o "${BUFR_LOG}" \
     -v "envfile=${envfile}" \
+    -v "PBS_NP=${BUFR_PBS_NP},PBS_NUM_NODES=${BUFR_PBS_NUM_NODES}" \
     "${script_dir}/scripts/exrrfs_ioda_bufr.sh")
 
 # Run the GETKF analysis after both upstream jobs complete successfully
@@ -142,6 +165,7 @@ job3=$(bash "${submit}" \
     -l "place=${GETKF_PLACE}" \
     -o "${GETKF_LOG}" \
     -v "envfile=${envfile}" \
+    -v "PBS_NP=${GETKF_PBS_NP},PBS_NUM_NODES=${GETKF_PBS_NUM_NODES}" \
     -W "depend=afterok:${job1}:${job2}" \
     "${script_dir}/scripts/exrrfs_analysis_enkf_jedi.sh")
 
