@@ -119,7 +119,7 @@ acquire_lock() {
 pid=$$
 enspath=${enspath}
 start_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-owner=DRIVER_analysis_auto.sh
+owner=automated_driver
 EOF
     lock_acquired=1
     return 0
