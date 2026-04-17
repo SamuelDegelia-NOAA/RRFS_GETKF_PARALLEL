@@ -14,8 +14,50 @@ rrfsworkflow=/lfs/h2/emc/da/noscrub/samuel.degelia/rrfs-workflow_na3km/rrfs-work
 rrfspath=/lfs/h1/ops/para/com/rrfs/v1.0
 reflpath=/lfs/h1/ops/prod/dcom/ldmdata/obs/upperair/mrms/conus/MergedReflectivityQC
 obsbase=/lfs/h1/ops/prod/com/obsproc/v1.2
-baserundir=/lfs/h2/emc/stmp/samuel.degelia/GETKF_PARALLEL
+baserundir=${BASERUNDIR:-/lfs/h2/emc/stmp/samuel.degelia/GETKF_PARALLEL}
 getkfyaml=/lfs/h2/emc/da/noscrub/samuel.degelia/parallel_getkf/fix/rdas-atmosphere-templates-fv3_na3km_getkf.yaml
+lockfile=${LOCKFILE:-${baserundir}/.enspath_lock}
+lock_created=0
+
+cleanup_lock() {
+    if [[ "${lock_created}" -eq 1 && -f "${lockfile}" ]]; then
+        lock_pid=$(awk -F= '/^pid=/{print $2}' "${lockfile}" 2>/dev/null)
+        if [[ "${lock_pid}" == "$$" ]]; then
+            rm -f "${lockfile}"
+        fi
+    fi
+}
+trap cleanup_lock EXIT INT TERM
+
+if [[ -z "${1:-}" ]]; then
+    echo "Usage: $0 <enspath>"
+    exit 1
+fi
+enspath="$1"
+if [[ ! -d "${enspath}" ]]; then
+    echo "ERROR: enspath does not exist: ${enspath}"
+    exit 1
+fi
+
+if [[ "${GETKF_EXTERNAL_LOCK:-0}" == "1" ]]; then
+    if [[ ! -f "${lockfile}" ]]; then
+        echo "ERROR: GETKF_EXTERNAL_LOCK=1 but lock file does not exist: ${lockfile}"
+        exit 1
+    fi
+else
+    mkdir -p "$(dirname "${lockfile}")"
+    if [[ -f "${lockfile}" ]]; then
+        echo "Another run is already in progress (lock file exists: ${lockfile})"
+        exit 1
+    fi
+    cat > "${lockfile}" << EOF
+pid=$$
+enspath=${enspath}
+start_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+owner=DRIVER_analysis.sh
+EOF
+    lock_created=1
+fi
 
 # Get the latest analysis we want to run and setup the run directories
 # Hard-coded now just for debugging
@@ -23,24 +65,16 @@ getkfyaml=/lfs/h2/emc/da/noscrub/samuel.degelia/parallel_getkf/fix/rdas-atmosphe
 # NOTE: the enspath contains RESTART files for the next forecast hour
 # So enkfrrfs.20260416/15 contains the restart files for 2026041616
 # Thus we need to look for obs at one hour after the restart file
-enspath=/lfs/h1/ops/para/com/rrfs/v1.0/enkfrrfs.20260416/15
 HH=${enspath##*/}
 tmp=${enspath%/*}
 YYYYMMDD=${tmp##*.}
+cycle_epoch=$(date -u -d "${YYYYMMDD:0:4}-${YYYYMMDD:4:2}-${YYYYMMDD:6:2} ${HH}:00:00" +%s)
+timestamp=$(date -u -d "@$((cycle_epoch + 3600))" +%Y%m%d%H)
+YYYYMMDD=${timestamp:0:8}
+HH=${timestamp:8:2}
 YYYY=${YYYYMMDD:0:4}
 MM=${YYYYMMDD:4:2}
 DD=${YYYYMMDD:6:2}
-
-# Now increase times by one hour since restart files are 1 h forecasts from this enspath
-HH=$((HH + 1))
-if (( HH >= 24 )); then
-    HH=00
-    # Increment the date by one day
-    YYYYMMDD=$(date -d "${YYYY}-${MM}-${DD} +1 day" +%Y%m%d)
-    YYYY=${YYYYMMDD:0:4}
-    MM=${YYYYMMDD:4:2}
-    DD=${YYYYMMDD:6:2}
-fi
 obspath=${obsbase}/rrfs.${YYYYMMDD}
 bufrdir=${baserundir}/bufr.${YYYYMMDD}${HH}
 mrmsdir=${baserundir}/mrms.${YYYYMMDD}${HH}
@@ -101,8 +135,4 @@ exit
 mv bufr.log  bufr_${YYYYMMDD}${HH}.log
 mv mrms.log  mrms_${YYYYMMDD}${HH}.log
 mv getkf.log getkf_${YYYYMMDD}${HH}.log
-
-
-
-
 
