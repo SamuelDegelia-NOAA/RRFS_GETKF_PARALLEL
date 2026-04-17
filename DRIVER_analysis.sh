@@ -29,6 +29,12 @@ cleanup_lock() {
 }
 trap cleanup_lock EXIT INT TERM
 
+lock_is_active() {
+    local lock_pid
+    lock_pid=$(awk -F= '/^pid=/{print $2}' "${lockfile}" 2>/dev/null)
+    [[ -n "${lock_pid}" ]] && kill -0 "${lock_pid}" 2>/dev/null
+}
+
 if [[ -z "${1:-}" ]]; then
     echo "Usage: $0 <enspath>"
     exit 1
@@ -47,8 +53,12 @@ if [[ "${GETKF_EXTERNAL_LOCK:-0}" == "1" ]]; then
 else
     mkdir -p "$(dirname "${lockfile}")"
     if [[ -f "${lockfile}" ]]; then
-        echo "Another run is already in progress (lock file exists: ${lockfile})"
-        exit 1
+        if lock_is_active; then
+            echo "Another run is already in progress (lock file exists: ${lockfile})"
+            exit 1
+        fi
+        echo "Removing stale lock file: ${lockfile}"
+        rm -f "${lockfile}"
     fi
     cat > "${lockfile}" << EOF
 pid=$$
@@ -68,7 +78,10 @@ fi
 HH=${enspath##*/}
 tmp=${enspath%/*}
 YYYYMMDD=${tmp##*.}
-cycle_epoch=$(date -u -d "${YYYYMMDD:0:4}-${YYYYMMDD:4:2}-${YYYYMMDD:6:2} ${HH}:00:00" +%s)
+cycle_epoch=$(date -u -d "${YYYYMMDD:0:4}-${YYYYMMDD:4:2}-${YYYYMMDD:6:2} ${HH}:00:00" +%s) || {
+    echo "ERROR: invalid cycle time parsed from enspath: ${enspath}"
+    exit 1
+}
 timestamp=$(date -u -d "@$((cycle_epoch + 3600))" +%Y%m%d%H)
 YYYYMMDD=${timestamp:0:8}
 HH=${timestamp:8:2}
@@ -135,4 +148,3 @@ exit
 mv bufr.log  bufr_${YYYYMMDD}${HH}.log
 mv mrms.log  mrms_${YYYYMMDD}${HH}.log
 mv getkf.log getkf_${YYYYMMDD}${HH}.log
-

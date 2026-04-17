@@ -9,6 +9,7 @@ status_file=${baserundir}/monitor_enspath_${timestamp}.status
 script_dir=$(cd "$(dirname "$0")" && pwd)
 driver_script=${DRIVER_SCRIPT:-${script_dir}/DRIVER_analysis.sh}
 lock_acquired=0
+ensemble_size=${ENSEMBLE_SIZE:-30}
 
 if ! mkdir -p "${baserundir}"; then
     echo "ERROR: Unable to create baserundir: ${baserundir}" >&2
@@ -16,6 +17,10 @@ if ! mkdir -p "${baserundir}"; then
 fi
 if ! touch "${processed_file}"; then
     echo "ERROR: Unable to initialize processed file: ${processed_file}" >&2
+    exit 1
+fi
+if ! [[ "${ensemble_size}" =~ ^[0-9]+$ ]] || [[ "${ensemble_size}" -lt 1 ]]; then
+    echo "ERROR: ENSEMBLE_SIZE must be a positive integer: ${ensemble_size}" >&2
     exit 1
 fi
 
@@ -44,14 +49,20 @@ release_lock() {
 }
 trap release_lock EXIT INT TERM
 
+lock_is_active() {
+    local lock_pid
+    lock_pid=$(awk -F= '/^pid=/{print $2}' "${lockfile}" 2>/dev/null)
+    [[ -n "${lock_pid}" ]] && kill -0 "${lock_pid}" 2>/dev/null
+}
+
 get_next_unprocessed_enspath() {
-    find "${rrfspath}" -mindepth 2 -maxdepth 2 -type d -regextype posix-extended \
-        -regex ".*/enkfrrfs\.[0-9]{8}/[0-9]{2}" | sort | while read -r path; do
+    while read -r path; do
         if ! grep -Fxq "${path}" "${processed_file}"; then
             echo "${path}"
             break
         fi
-    done
+    done < <(find "${rrfspath}" -mindepth 2 -maxdepth 2 -type d -regextype posix-extended \
+        -regex ".*/enkfrrfs\.[0-9]{8}/[0-9]{2}" | sort)
 }
 
 get_restart_prefix() {
@@ -76,7 +87,7 @@ validate_restart_files() {
     restart_prefix=$(get_restart_prefix "${enspath}") || return 1
     log "Validating member restart files for ${enspath} (prefix ${restart_prefix})"
 
-    for member_num in $(seq 1 30); do
+    for member_num in $(seq 1 "${ensemble_size}"); do
         member=$(printf "m%03d" "${member_num}")
         restart_dir="${enspath}/${member}/forecast/RESTART"
         if [[ ! -d "${restart_dir}" ]]; then
@@ -102,8 +113,12 @@ validate_restart_files() {
 acquire_lock() {
     local enspath="$1"
     if [[ -f "${lockfile}" ]]; then
-        log "Lock exists (${lockfile}); a run is already in progress."
-        return 1
+        if lock_is_active; then
+            log "Lock exists (${lockfile}); a run is already in progress."
+            return 1
+        fi
+        log "Removing stale lock file: ${lockfile}"
+        rm -f "${lockfile}"
     fi
     cat > "${lockfile}" << EOF
 pid=$$
