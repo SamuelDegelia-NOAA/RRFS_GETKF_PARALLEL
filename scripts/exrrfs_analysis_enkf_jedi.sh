@@ -1,12 +1,4 @@
 #!/bin/bash
-#PBS -A RRFS-DEV
-#PBS -q dev
-#PBS -l select=40:mpiprocs=40:ompthreads=1:ncpus=40
-#PBS -l walltime=01:00:00
-#PBS -N na3km_getkf_prod
-#PBS -j oe -o getkf.log
-#PBS -l place=vscatter
-
 ################
 ### Settings ###
 ################

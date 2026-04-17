@@ -1,12 +1,4 @@
 #!/bin/bash
-#PBS -A RRFS-DEV
-#PBS -q dev
-#PBS -l select=1:mpiprocs=64:ncpus=64
-#PBS -l walltime=00:25:00
-#PBS -N na3km_process_radarref_prod
-#PBS -j oe -o mrms.log
-#PBS -l place=excl
-
 ################
 ### Settings ###
 ################

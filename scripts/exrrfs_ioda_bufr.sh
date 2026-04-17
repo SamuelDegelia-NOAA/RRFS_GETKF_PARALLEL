@@ -1,12 +1,4 @@
 #!/bin/bash
-#PBS -A RRFS-DEV
-#PBS -q dev
-#PBS -l select=1:mpiprocs=1:ncpus=1:mem=20G
-#PBS -l walltime=00:20:00
-#PBS -N na3km_ioda_bufr_prod
-#PBS -j oe -o bufr.log
-#PBS -l place=excl
-
 ################
 ### Settings ###
 ################
