@@ -58,6 +58,44 @@ GETKF_WALLTIME="01:00:00"
 GETKF_PLACE="vscatter"
 GETKF_LOG="getkf.log"
 
+extract_pbs_values_from_select() {
+    local select_spec="$1"
+    local select_name="$2"
+    local np=""
+    local nodes=""
+
+    if [[ "${select_spec}" =~ ^([0-9]+): ]]; then
+        nodes="${BASH_REMATCH[1]}"
+    else
+        echo "ERROR: ${select_name} must start with <nodes>: ... Got: ${select_spec}" >&2
+        return 1
+    fi
+
+    if [[ "${select_spec}" =~ (^|:)mpiprocs=([0-9]+)(:|$) ]]; then
+        np="${BASH_REMATCH[2]}"
+    else
+        echo "ERROR: ${select_name} must include mpiprocs=<N>. Got: ${select_spec}" >&2
+        return 1
+    fi
+
+    echo "${np} ${nodes}"
+}
+
+if ! RADAR_PBS_VALUES=$(extract_pbs_values_from_select "${RADAR_SELECT}" "RADAR_SELECT"); then
+    exit 1
+fi
+read -r RADAR_PBS_NP RADAR_PBS_NUM_NODES <<< "${RADAR_PBS_VALUES}"
+
+if ! BUFR_PBS_VALUES=$(extract_pbs_values_from_select "${BUFR_SELECT}" "BUFR_SELECT"); then
+    exit 1
+fi
+read -r BUFR_PBS_NP BUFR_PBS_NUM_NODES <<< "${BUFR_PBS_VALUES}"
+
+if ! GETKF_PBS_VALUES=$(extract_pbs_values_from_select "${GETKF_SELECT}" "GETKF_SELECT"); then
+    exit 1
+fi
+read -r GETKF_PBS_NP GETKF_PBS_NUM_NODES <<< "${GETKF_PBS_VALUES}"
+
 # Get the latest analysis we want to run and setup the run directories
 # Hard-coded now just for debugging
 # NOTE: the enspath contains RESTART files for the next forecast hour
@@ -118,6 +156,7 @@ job1=$(bash "${submit}" \
     -l "place=${RADAR_PLACE}" \
     -o "${RADAR_LOG}" \
     -v "envfile=${envfile}" \
+    -v "PBS_NP=${RADAR_PBS_NP},PBS_NUM_NODES=${RADAR_PBS_NUM_NODES}" \
     "${script_dir}/scripts/exrrfs_process_radar.sh")
 
 # Convert prepbufr observations to IODA
@@ -130,6 +169,7 @@ job2=$(bash "${submit}" \
     -l "place=${BUFR_PLACE}" \
     -o "${BUFR_LOG}" \
     -v "envfile=${envfile}" \
+    -v "PBS_NP=${BUFR_PBS_NP},PBS_NUM_NODES=${BUFR_PBS_NUM_NODES}" \
     "${script_dir}/scripts/exrrfs_ioda_bufr.sh")
 
 # Run the GETKF analysis after both upstream jobs complete successfully
@@ -142,6 +182,7 @@ job3=$(bash "${submit}" \
     -l "place=${GETKF_PLACE}" \
     -o "${GETKF_LOG}" \
     -v "envfile=${envfile}" \
+    -v "PBS_NP=${GETKF_PBS_NP},PBS_NUM_NODES=${GETKF_PBS_NUM_NODES}" \
     -W "depend=afterok:${job1}:${job2}" \
     "${script_dir}/scripts/exrrfs_analysis_enkf_jedi.sh")
 
