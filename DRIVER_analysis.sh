@@ -58,29 +58,14 @@ GETKF_WALLTIME="01:00:00"
 GETKF_PLACE="vscatter"
 GETKF_LOG="getkf.log"
 
+# Get number of nodes and tasks to pass into the scripts
 RADAR_PBS_NP=$(echo "${RADAR_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
 RADAR_PBS_NUM_NODES=$(echo "${RADAR_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
-if [[ -z "${RADAR_PBS_NP}" || -z "${RADAR_PBS_NUM_NODES}" ]]; then
-    echo "ERROR: RADAR_SELECT must contain '<nodes>:' and 'mpiprocs=<N>'. Got: ${RADAR_SELECT}" >&2
-    exit 1
-fi
-
 BUFR_PBS_NP=$(echo "${BUFR_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
 BUFR_PBS_NUM_NODES=$(echo "${BUFR_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
-if [[ -z "${BUFR_PBS_NP}" || -z "${BUFR_PBS_NUM_NODES}" ]]; then
-    echo "ERROR: BUFR_SELECT must contain '<nodes>:' and 'mpiprocs=<N>'. Got: ${BUFR_SELECT}" >&2
-    exit 1
-fi
-
 GETKF_PBS_NP=$(echo "${GETKF_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
 GETKF_PBS_NUM_NODES=$(echo "${GETKF_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
-if [[ -z "${GETKF_PBS_NP}" || -z "${GETKF_PBS_NUM_NODES}" ]]; then
-    echo "ERROR: GETKF_SELECT must contain '<nodes>:' and 'mpiprocs=<N>'. Got: ${GETKF_SELECT}" >&2
-    exit 1
-fi
 
-# Get the latest analysis we want to run and setup the run directories
-# Hard-coded now just for debugging
 # NOTE: the enspath contains RESTART files for the next forecast hour
 # So enkfrrfs.20260416/15 contains the restart files for 2026041616
 # Thus we need to look for obs at one hour after the restart file
@@ -120,6 +105,15 @@ anldir='${anldir}'
 getkfyaml='${getkfyaml}'
 EOF
 
+if [ -d ${bufrdir} ]; then
+  rm -rf ${bufrdir}
+fi
+if [ -d ${mrmsdir} ]; then
+  rm -rf ${mrmsdir}
+fi
+if [ -d ${anldir} ]; then
+  rm -rf ${anldir}
+fi
 rm -f bufr.log mrms.log getkf.log
 mkdir -p ${bufrdir}
 mkdir -p ${mrmsdir}
@@ -156,6 +150,7 @@ job2=$(bash "${submit}" \
     "${script_dir}/scripts/exrrfs_ioda_bufr.sh")
 
 # Run the GETKF analysis after both upstream jobs complete successfully
+#    -W "depend=afterok:${job1}:${job2}" \
 job3=$(bash "${submit}" \
     -N "${GETKF_JOB_NAME}" \
     -A "${PBS_ACCOUNT}" \

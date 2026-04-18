@@ -45,7 +45,7 @@ export MPICH_OFI_VERBOSE=1
 export MPICH_MPIIO_HINTS='*.tile1.nc:romio_cb_read=disable,*.sfc_data.nc:romio_cb_read=disable,*.phy_data.nc:romio_cb_read=disable,*.fv_*.res.nc:romio_cb_write=enable,*.sfc_data.nc:romio_cb_write=enable'
 export OMP_STACKSIZE=500M
 export OMP_NUM_THREADS=1 #${TPP_RUN_ANALYSIS}
-APRUN="mpirun -n ${PBS_NP} -ppn $(( PBS_NP / PBS_NUM_NODES )) --cpu-bind core --depth 1"
+APRUN="mpirun -n $(( PBS_NP * PBS_NUM_NODES )) -ppn ${PBS_NP} --cpu-bind core --depth 1"
 
 #
 #-----------------------------------------------------------------------
@@ -227,7 +227,7 @@ fi
 export OMP_NUM_THREADS=1
 export pgm="fv3jedi_letkf.x"
 #jedi_exec="${EXECdir}/bin/${pgm}"
-jedi_exec="${RDASAPP}/bin/${pgm}"
+jedi_exec="${RDASAPP_DIR}/build/bin/${pgm}"
 cp "${jedi_exec}" "${anldir}/${pgm}"
 
 . prep_step

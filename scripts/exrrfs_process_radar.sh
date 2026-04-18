@@ -30,7 +30,7 @@ module load run_analysis_gsi.local
 ulimit -s unlimited
 ulimit -a
 set -euox pipefail
-APRUN="mpiexec -n ${PBS_NP} -ppn $(( PBS_NP / PBS_NUM_NODES ))"
+APRUN="mpiexec -n $(( PBS_NP * PBS_NUM_NODES )) -ppn ${PBS_NP}"
 
 #
 #-----------------------------------------------------------------------
