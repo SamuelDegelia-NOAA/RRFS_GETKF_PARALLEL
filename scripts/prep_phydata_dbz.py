@@ -34,8 +34,8 @@ proc_start = time.time()
 nk = refl3d.shape[1]
 for k in range(nk // 2):
     ktop = nk - 1 - k
-    lower = refl3d[:, k, :, :]
-    upper = refl3d[:, ktop, :, :]
+    lower = refl3d[:, k, :, :].copy()
+    upper = refl3d[:, ktop, :, :].copy()
     refl3d[:, k, :, :] = np.maximum(upper, 0.0)
     refl3d[:, ktop, :, :] = np.maximum(lower, 0.0)
 
