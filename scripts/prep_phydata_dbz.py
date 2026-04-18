@@ -34,8 +34,8 @@ proc_start = time.time()
 nk = refl3d.shape[1]
 for k in range(nk // 2):
     ktop = nk - 1 - k
-    lower = refl3d[:, k, :, :].copy()
-    upper = refl3d[:, ktop, :, :].copy()
+    lower = refl3d[:, k, :, :]
+    upper = refl3d[:, ktop, :, :]
     refl3d[:, k, :, :] = np.maximum(upper, 0.0)
     refl3d[:, ktop, :, :] = np.maximum(lower, 0.0)
 
@@ -43,11 +43,11 @@ if nk % 2 == 1:
     kmid = nk // 2
     refl3d[:, kmid, :, :] = np.maximum(refl3d[:, kmid, :, :], 0.0)
 
-# Overwrite file
-write_start = time.time()
+# Close file
+close_start = time.time()
 nc_file.close()
 print(f'[{time.strftime("%H:%M:%S")}] Processing completed in {time.time() - proc_start:.2f}s', flush=True)
-print(f'[{time.strftime("%H:%M:%S")}] Close completed in {time.time() - write_start:.2f}s', flush=True)
+print(f'[{time.strftime("%H:%M:%S")}] Close completed in {time.time() - close_start:.2f}s', flush=True)
 
 total_time = time.time() - start_time
 print(f'[{time.strftime("%H:%M:%S")}] Total time: {total_time:.2f}s', flush=True)
