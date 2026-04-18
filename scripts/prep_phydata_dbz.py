@@ -24,7 +24,11 @@ print(f'[{time.strftime("%H:%M:%S")}] Open completed in {time.time() - read_star
 # Check if this is already been pre-processed and exit
 rmin = np.inf
 for k in range(refl3d.shape[1]):
-    rmin = min(rmin, np.nanmin(refl3d[:, k, :, :]))
+    kmin = np.nanmin(refl3d[:, k, :, :])
+    if kmin < 0.0:
+        rmin = kmin
+        break
+    rmin = min(rmin, kmin)
 if rmin >= 0.0:
     nc_file.close()
     sys.exit(f'Quitting early... {file_prep} seems to already be prepped. ReflMin = {rmin} dbz')
