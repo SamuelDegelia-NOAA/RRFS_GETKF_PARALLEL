@@ -103,11 +103,11 @@ done
 #
 #-----------------------------------------------------------------------
 #
-echo "Running prep_phydata_dbz.py in parallel for all members..."
+echo "Extracting ref_f3d and running prep_phydata_dbz.py in parallel for all members..."
 for imem in $(seq 1 $nens); do
   memcharv0="mem"$(printf %03i $imem)
-  echo "python prep_phydata_dbz.py data/inputs/${memcharv0}/phy_data.nc > prep_phydata_${memcharv0}.log 2>&1"
-done | parallel -j 30
+  echo "ncks -O -v ref_f3d data/inputs/${memcharv0}/phy_data.nc data/inputs/${memcharv0}/phy_data.nc_prepdbz > prep_phydata_${memcharv0}.log 2>&1 && python prep_phydata_dbz.py data/inputs/${memcharv0}/phy_data.nc_prepdbz >> prep_phydata_${memcharv0}.log 2>&1"
+done | parallel -j 30 --halt soon,fail=1
 echo "phy_data.nc preprocessing completed successfully!!!"
 
 # View timing for all members
