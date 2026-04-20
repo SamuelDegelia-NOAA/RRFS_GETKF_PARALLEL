@@ -76,7 +76,7 @@ driver_save_posterior_mean: true
 driver_save_posterior_ensemble: false
 driver_save_prior_mean: true
 driver_save_posterior_mean_increment: false
-driver_save_posterior_ensemble_increments: false
+driver_save_posterior_ensemble_increments: true
 
 # Model things
 # ------------
