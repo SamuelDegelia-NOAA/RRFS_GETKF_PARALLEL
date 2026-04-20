@@ -149,12 +149,24 @@ sed -i \
 
 python run_jcb.py "${YYYYMMDDHH}" "${JCB_CONFIG_ENKF}" "${jedi_yaml}"
 
-# Since JCB does not support OSDF yet, do a sed replacement
+#
+#-----------------------------------------------------------------------
+#
+# Perform some YAML post processing that JCB cannot handle yet
+#
+#-----------------------------------------------------------------------
+#
+
+# Since JCB does not support OSDF yet, do a sed replacement to turn these on
 sed -i 's/^ *distribution:$/      use data frame container: true\
       redistribution:/' "${jedi_yaml}"
 
-# Solver JCB config does not set linear observer so we need to change that
+# JCB does not set linear observer so we need to change that
 sed -i 's/use linear observer: false/use linear observer: true/' "${jedi_yaml}"
+sed -i 's/do test prints: true/do test prints: false/' "${jedi_yaml}"
+
+# Turn off all jdiag outputs
+sed -i '/^[[:space:]]*obsdataout:/,+6 s/^/#/' "${jedi_yaml}"
 
 #
 #-----------------------------------------------------------------------
