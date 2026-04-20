@@ -21,6 +21,6 @@ Requirements:
 * RDASApp and rrfs-workflow installed
 
 Paths to data used on WCOSS2
-* RRFS ensemble: /lfs/h1/ops/para/com/rrfs/v1.0
-* BUFR observations: /lfs/h1/ops/prod/com/obsproc/v1.2
-* MRMS observations: /lfs/h1/ops/prod/dcom/ldmdata/obs/upperair/mrms/conus/MergedReflectivityQC
+* RRFS ensemble: `/lfs/h1/ops/para/com/rrfs/v1.0`
+* BUFR observations: `/lfs/h1/ops/prod/com/obsproc/v1.2`
+* MRMS observations: `/lfs/h1/ops/prod/dcom/ldmdata/obs/upperair/mrms/conus/MergedReflectivityQC`
