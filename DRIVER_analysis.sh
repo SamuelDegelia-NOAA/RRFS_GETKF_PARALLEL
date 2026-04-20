@@ -166,3 +166,16 @@ job3=$(bash "${submit}" \
     "${script_dir}/scripts/exrrfs_analysis_enkf_jedi.sh")
 
 echo "Submitted jobs: radar=${job1} bufr=${job2} getkf=${job3}"
+
+# Wait for all jobs to complete
+while qstat "${job1}" > /dev/null 2>&1 || \
+      qstat "${job2}" > /dev/null 2>&1 || \
+      qstat "${job3}" > /dev/null 2>&1; do
+    sleep 10
+done
+
+mv bufr.log bufr_${YYYYMMDD}${HH}.log
+mv mrms.log mrms_${YYYYMMDD}${HH}.log
+mv getkf.log getkf_${YYYYMMDD}${HH}.log
+
+exit 0
