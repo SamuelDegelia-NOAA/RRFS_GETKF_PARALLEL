@@ -273,6 +273,12 @@ export pgm="offline_vad_thinning.py"
 #export err=$?; err_chk
 mv ioda_vadwnd_thinned.nc ioda_vadwnd.nc
 
+# Cast metadata to the type expected by OSDF
+for ioda_file in ioda*.nc; do
+  ./prep_ioda_cast.sh -i ${ioda_file}
+done
+
+
 ## offline duplicate tagger (cycle-to-cycle duplicates) (0=new; 1=duplicate)
 #obs_types=(adpupa adpsfc aircar aircft msonet vadwnd sfcshp rassda proflr)
 #for obs in "${obs_types[@]}"; do

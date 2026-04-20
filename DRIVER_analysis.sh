@@ -121,6 +121,7 @@ mkdir -p ${anldir}
 cp ${envfile} ${bufrdir}
 cp ${envfile} ${mrmsdir}
 cp ${envfile} ${anldir}
+cp ./scripts/prep_ioda_cast.sh ${bufrdir}
 cp ./scripts/prep_phydata_dbz.py ${anldir}
 
 # Create radar observations
