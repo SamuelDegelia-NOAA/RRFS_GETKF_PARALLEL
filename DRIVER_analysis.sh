@@ -6,14 +6,26 @@
 #   2. Set up analysis run directory using saved fix files
 #   3. Run GETKF analysis
 
-# Settings
+################
+### Settings ###
+################
+
+# Paths to local installs
 RDASApp=/lfs/h2/emc/da/noscrub/samuel.degelia/RDASApp_redist_iodafix/RDASApp
 rrfsworkflow=/lfs/h2/emc/da/noscrub/samuel.degelia/rrfs-workflow_na3km/rrfs-workflow
+baserundir=/lfs/h2/emc/stmp/samuel.degelia/GETKF_PARALLEL
+
+# GETKF config
+getkfyaml=/lfs/h2/emc/da/noscrub/samuel.degelia/parallel_getkf/fix/rdas-atmosphere-templates-fv3_na3km_getkf.yaml
+
+# Paths to RRFS ensemble and observations in realtime (wont change)
 rrfspath=/lfs/h1/ops/para/com/rrfs/v1.0
 reflpath=/lfs/h1/ops/prod/dcom/ldmdata/obs/upperair/mrms/conus/MergedReflectivityQC
 obsbase=/lfs/h1/ops/prod/com/obsproc/v1.2
-baserundir=${BASERUNDIR:-/lfs/h2/emc/stmp/samuel.degelia/GETKF_PARALLEL}
-getkfyaml=/lfs/h2/emc/da/noscrub/samuel.degelia/parallel_getkf/fix/rdas-atmosphere-templates-fv3_na3km_getkf.yaml
+
+#############################
+### Begin executable code ###
+#############################
 
 if [[ -z "${1:-}" ]]; then
     echo "Usage: $0 <enspath>"
@@ -53,7 +65,7 @@ BUFR_LOG="bufr.log"
 
 # GETKF analysis
 GETKF_JOB_NAME="na3km_getkf"
-GETKF_SELECT="40:mpiprocs=40:ompthreads=1:ncpus=40"
+GETKF_SELECT="60:mpiprocs=40:ompthreads=1:ncpus=40"
 GETKF_WALLTIME="01:00:00"
 GETKF_PLACE="vscatter"
 GETKF_LOG="getkf.log"
@@ -83,6 +95,8 @@ obspath=${obsbase}/rrfs.${YYYYMMDD}
 bufrdir=${baserundir}/bufr.${YYYYMMDD}${HH}
 mrmsdir=${baserundir}/mrms.${YYYYMMDD}${HH}
 anldir=${baserundir}/getkf.${YYYYMMDD}${HH}
+currdir=`pwd`
+fixsimple=${currdir}/fix
 
 # Export the variables we will need in other tasks
 envfile=getkf_run.env
@@ -103,6 +117,7 @@ bufrdir='${bufrdir}'
 mrmsdir='${mrmsdir}'
 anldir='${anldir}'
 getkfyaml='${getkfyaml}'
+fixsimple='${fixsimple}'
 EOF
 
 if [ -d ${bufrdir} ]; then

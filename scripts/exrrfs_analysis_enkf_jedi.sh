@@ -196,7 +196,8 @@ ln -snf ${FIXLAM}/${CRES}_mosaic.halo3.nc INPUT/grid_spec.nc
 cp ${FIX_JEDI}/dynamics_lam_cmaq.yaml .
 cp ${FIX_JEDI}/field_table .
 cp ${FIX_JEDI}/${PREDEF_GRID_NAME}/fmsmpp.nml .
-cp ${FIX_JEDI}/${PREDEF_GRID_NAME}/input_lam* .
+#cp ${FIX_JEDI}/${PREDEF_GRID_NAME}/input_lam* .
+cp ${fixsimple}/input_lam* .
 
 #
 #-----------------------------------------------------------------------
