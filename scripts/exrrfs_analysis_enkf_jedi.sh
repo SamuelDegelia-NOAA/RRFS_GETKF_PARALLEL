@@ -153,6 +153,9 @@ python run_jcb.py "${YYYYMMDDHH}" "${JCB_CONFIG_ENKF}" "${jedi_yaml}"
 sed -i 's/^ *distribution:$/      use data frame container: true\
       redistribution:/' "${jedi_yaml}"
 
+# Solver JCB config does not set linear observer so we need to change that
+sed -i 's/use linear observer: false/use linear observer: true/' "${jedi_yaml}"
+
 #
 #-----------------------------------------------------------------------
 #
