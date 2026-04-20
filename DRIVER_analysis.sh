@@ -181,3 +181,25 @@ job3=$(bash "${submit}" \
     "${script_dir}/scripts/exrrfs_analysis_enkf_jedi.sh")
 
 echo "Submitted jobs: radar=${job1} bufr=${job2} getkf=${job3}"
+
+# Wait for all jobs to complete
+while qstat_output=$(qstat "${job1}" "${job2}" "${job3}" 2>/dev/null || true); do
+    if [[ "${qstat_output}" != *"${job1}"* && \
+          "${qstat_output}" != *"${job2}"* && \
+          "${qstat_output}" != *"${job3}"* ]]; then
+        break
+    fi
+    sleep 10
+done
+
+if [ -f bufr.log ]; then
+    mv bufr.log bufr_${YYYYMMDD}${HH}.log
+fi
+if [ -f mrms.log ]; then
+    mv mrms.log mrms_${YYYYMMDD}${HH}.log
+fi
+if [ -f getkf.log ]; then
+    mv getkf.log getkf_${YYYYMMDD}${HH}.log
+fi
+
+exit 0
