@@ -10,7 +10,7 @@ source "${envfile}"
 
 nens=30
 CRES="C3463"
-output_ens="FALSE"
+output_ens="TRUE"
 DO_ENKF_RADAR_REF="FALSE"
 FIX_JEDI=${rrfsworkflow}/fix/jedi
 FIX_GSI=${rrfsworkflow}/fix/gsi
