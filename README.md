@@ -16,6 +16,15 @@ Or it can be automated to run on the latest ensemble data available on Cactus:
 
 `*/5 * * * * /path/to/RRFS_GETKF_PARALLEL/DRIVER_analysis_auto.sh`
 
+The automated driver tracks processed cycles in:
+
+`~/.enspath_cycle_history.txt`
+
+Useful operations:
+* Monitor progress: `tail -f ~/.enspath_cycle_history.txt`
+* Restart from a specific cycle by removing newer entries from the history file
+* Manual trim example (remove last 5 entries): `head -n -5 ~/.enspath_cycle_history.txt > ~/.enspath_cycle_history.txt.tmp && mv ~/.enspath_cycle_history.txt.tmp ~/.enspath_cycle_history.txt`
+
 Requirements: 
 * Access to WCOSS2
 * RDASApp and rrfs-workflow installed
