@@ -97,6 +97,9 @@ mrmsdir=${baserundir}/mrms.${YYYYMMDD}${HH}
 anldir=${baserundir}/getkf.${YYYYMMDD}${HH}
 currdir=`pwd`
 fixsimple=${currdir}/fix
+if [ ! -d ./logs ]; then
+  mkdir -p logs
+fi
 
 # Export the variables we will need in other tasks
 envfile=getkf_run.env
@@ -193,13 +196,13 @@ while qstat_output=$(qstat "${job1}" "${job2}" "${job3}" 2>/dev/null || true); d
 done
 
 if [ -f bufr.log ]; then
-    mv bufr.log bufr_${YYYYMMDD}${HH}.log
+    mv bufr.log logs/bufr_${YYYYMMDD}${HH}.log
 fi
 if [ -f mrms.log ]; then
-    mv mrms.log mrms_${YYYYMMDD}${HH}.log
+    mv mrms.log logs/mrms_${YYYYMMDD}${HH}.log
 fi
 if [ -f getkf.log ]; then
-    mv getkf.log getkf_${YYYYMMDD}${HH}.log
+    mv getkf.log logs/getkf_${YYYYMMDD}${HH}.log
 fi
 
 exit 0
