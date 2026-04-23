@@ -5,4 +5,5 @@
 *.swp
 __pycache__/
 *.pyc
+*.log
 logs/*
