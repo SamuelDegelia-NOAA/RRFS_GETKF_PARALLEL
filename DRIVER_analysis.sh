@@ -70,6 +70,13 @@ GETKF_WALLTIME="01:00:00"
 GETKF_PLACE="vscatter"
 GETKF_LOG="getkf.log"
 
+# GSI verification
+VERIF_JOB_NAME="na3km_verif"
+VERIF_SELECT="1:ncpus=128:ompthreads=8:mem=500G"
+VERIF_WALLTIME="00:15:00"
+VERIF_PLACE="excl"
+VERIF_LOG="verif.log"
+
 # Get number of nodes and tasks to pass into the scripts
 RADAR_PBS_NP=$(echo "${RADAR_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
 RADAR_PBS_NUM_NODES=$(echo "${RADAR_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
@@ -77,6 +84,8 @@ BUFR_PBS_NP=$(echo "${BUFR_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
 BUFR_PBS_NUM_NODES=$(echo "${BUFR_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
 GETKF_PBS_NP=$(echo "${GETKF_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
 GETKF_PBS_NUM_NODES=$(echo "${GETKF_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
+VERIF_PBS_NP=$(echo "${VERIF_SELECT}" | grep -oP 'ncpus\s*=\s*\K[0-9]+')
+VERIF_PBS_NUM_NODES=$(echo "${VERIF_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
 
 # NOTE: the enspath contains RESTART files for the next forecast hour
 # So enkfrrfs.20260416/15 contains the restart files for 2026041616
@@ -95,6 +104,7 @@ obspath=${obsbase}/rrfs.${YYYYMMDD}
 bufrdir=${baserundir}/bufr.${YYYYMMDD}${HH}
 mrmsdir=${baserundir}/mrms.${YYYYMMDD}${HH}
 anldir=${baserundir}/getkf.${YYYYMMDD}${HH}
+verifdir=${baserundir}/verif.${YYYYMMDD}${HH}
 currdir=`pwd`
 fixsimple=${currdir}/fix
 if [ ! -d ./logs ]; then
@@ -119,6 +129,7 @@ DD='${DD}'
 bufrdir='${bufrdir}'
 mrmsdir='${mrmsdir}'
 anldir='${anldir}'
+verifdir='${verifdir}'
 getkfyaml='${getkfyaml}'
 fixsimple='${fixsimple}'
 EOF
@@ -132,13 +143,18 @@ fi
 if [ -d ${anldir} ]; then
   rm -rf ${anldir}
 fi
-rm -f bufr.log mrms.log getkf.log
+if [ -d ${verifdir} ]; then
+  rm -rf ${verifdir}
+fi
+rm -f bufr.log mrms.log getkf.log verif.log
 mkdir -p ${bufrdir}
 mkdir -p ${mrmsdir}
 mkdir -p ${anldir}
+mkdir -p ${verifdir}
 cp ${envfile} ${bufrdir}
 cp ${envfile} ${mrmsdir}
 cp ${envfile} ${anldir}
+cp ${envfile} ${verifdir}
 cp ./scripts/prep_ioda_cast.sh ${bufrdir}
 cp ./scripts/prep_phydata_dbz.py ${anldir}
 
@@ -183,13 +199,28 @@ job3=$(bash "${submit}" \
     -W "depend=afterok:${job1}:${job2}" \
     "${script_dir}/scripts/exrrfs_analysis_enkf_jedi.sh")
 
-echo "Submitted jobs: radar=${job1} bufr=${job2} getkf=${job3}"
+# Run the verification after the GETKF job completes successfully
+job4=$(bash "${submit}" \
+    -N "${VERIF_JOB_NAME}" \
+    -A "${PBS_ACCOUNT}" \
+    -q "${PBS_QUEUE}" \
+    -l "select=${VERIF_SELECT}" \
+    -l "walltime=${VERIF_WALLTIME}" \
+    -l "place=${VERIF_PLACE}" \
+    -o "${VERIF_LOG}" \
+    -v "envfile=${envfile}" \
+    -v "PBS_NP=${VERIF_PBS_NP},PBS_NUM_NODES=${VERIF_PBS_NUM_NODES}" \
+    -W "depend=afterok:${job3}" \
+    "${script_dir}/scripts/exrrfs_analysis_gsi.sh")
+
+echo "Submitted jobs: radar=${job1} bufr=${job2} getkf=${job3} verif=${job4}"
 
 # Wait for all jobs to complete
-while qstat_output=$(qstat "${job1}" "${job2}" "${job3}" 2>/dev/null || true); do
+while qstat_output=$(qstat "${job1}" "${job2}" "${job3}" "${job4}" 2>/dev/null || true); do
     if [[ "${qstat_output}" != *"${job1}"* && \
           "${qstat_output}" != *"${job2}"* && \
-          "${qstat_output}" != *"${job3}"* ]]; then
+          "${qstat_output}" != *"${job3}"* && \
+          "${qstat_output}" != *"${job4}"* ]]; then
         break
     fi
     sleep 10
@@ -203,6 +234,9 @@ if [ -f mrms.log ]; then
 fi
 if [ -f getkf.log ]; then
     mv getkf.log logs/getkf_${YYYYMMDD}${HH}.log
+fi
+if [ -f verif.log ]; then
+    mv verif.log logs/verif_${YYYYMMDD}${HH}.log
 fi
 
 exit 0
