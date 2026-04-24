@@ -136,8 +136,6 @@ state_variables:
 - equivalent_reflectivity_factor
 - air_temperature_at_2m
 - water_vapor_mixing_ratio_wrt_moist_air_at_2m
-- eastward_wind_at_surface
-- northward_wind_at_surface
 
 eastward_wind: ua
 northward_wind: va
@@ -164,8 +162,6 @@ upward_air_velocity: W
 equivalent_reflectivity_factor: ref_f3d
 air_temperature_at_2m: t2m
 water_vapor_mixing_ratio_wrt_moist_air_at_2m: q2m
-eastward_wind_at_surface: u_srf
-northward_wind_at_surface: v_srf
 
 abi_simulated_channels: 7-16
 
