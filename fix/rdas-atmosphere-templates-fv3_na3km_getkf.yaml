@@ -158,6 +158,10 @@ cloud_ice_number_concentration: ice_nc
 rain_number_concentration: rain_nc
 upward_air_velocity: W
 equivalent_reflectivity_factor: ref_f3d
+air_temperature_at_2m: t2m
+water_vapor_mixing_ratio_wrt_moist_air_at_2m: q2m
+eastward_wind_at_surface: u_srf
+northward_wind_at_surface: v_srf
 
 abi_simulated_channels: 7-16
 
