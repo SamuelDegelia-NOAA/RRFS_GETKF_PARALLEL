@@ -13,7 +13,7 @@ app_path_observation_chronicle: rdas/observation_chronicle/atmosphere
 # ------------------------------------------------------------
 output_mean_prior_file: atmosphere_output_mean_prior
 posterior_output_file: atmosphere_output_mean_posterior
-output_increment_file: atmosphere_output_ensemble_mean_increments
+output_increment_file: atmosphere_output_mean_increments
 output_ensemble_increments_file: atmosphere_output_ensemble_increments
 model_file: atmosphere_model_pseudo
 initial_condition_file: atmosphere_background
@@ -134,6 +134,10 @@ state_variables:
 - rain_number_concentration
 - upward_air_velocity
 - equivalent_reflectivity_factor
+- air_temperature_at_2m
+- water_vapor_mixing_ratio_wrt_moist_air_at_2m
+- eastward_wind_at_surface
+- northward_wind_at_surface
 
 eastward_wind: ua
 northward_wind: va
