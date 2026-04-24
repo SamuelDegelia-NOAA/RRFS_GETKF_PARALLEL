@@ -247,9 +247,20 @@ LD_LIBRARY_PATH="/apps/ops/test/spack-stack-nco-1.9/oneapi/2024.2.1/hdf5-1.14.3-
 mv errfile errfile_ua2u
 
 # Need to get the mean background of u,v since JEDI does not output them
-# Then will append that to the existing background file
-ncea -v u,v ${anldir}/data/inputs/mem*/fv_core.res.tile1.nc ensmean_uv.nc
+# Then will append that to the existing background file, but first fix chunking
+# to ensure compatibility with the target file's chunk sizes
+ncea -v u,v ${anldir}/data/inputs/mem*/fv_core.res.tile1.nc ensmean_uv_raw.nc
+ncks -O --chunk_policy rechunk_all --cnk_dmn unlimited,-1 --cnk_dmn Time,1 --cnk_dmn pfull,-1 ensmean_uv_raw.nc ensmean_uv.nc
+if [ $? -ne 0 ]; then
+  echo "ERROR: Failed to rechunk ensmean_uv_raw.nc"
+  exit 7
+fi
+rm -f ensmean_uv_raw.nc
 ncks -A ensmean_uv.nc fv_core.res.tile1.nc
+if [ $? -ne 0 ]; then
+  echo "ERROR: Failed to append u,v to background file"
+  exit 7
+fi
 
 # Now apply the increments to the background file with NCO tools
 dynfile=fv_core.res.tile1.nc
