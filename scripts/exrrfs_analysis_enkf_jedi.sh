@@ -103,6 +103,36 @@ done
 #
 #-----------------------------------------------------------------------
 #
+
+# Verify all input files exist before starting parallel processing
+echo "Verifying all input files are accessible..."
+max_retries=5
+retry_count=0
+files_missing=true
+
+while [ "$files_missing" = true ] && [ $retry_count -lt $max_retries ]; do
+  files_missing=false
+  for imem in $(seq 1 $nens); do
+    memcharv0="mem"$(printf %03i $imem)
+    if [ ! -f "data/inputs/${memcharv0}/phy_data.nc" ]; then
+      echo "  WARNING: data/inputs/${memcharv0}/phy_data.nc not accessible yet (attempt $((retry_count+1))/$max_retries)"
+      files_missing=true
+    fi
+  done
+
+  if [ "$files_missing" = true ]; then
+    if [ $retry_count -lt $((max_retries-1)) ]; then
+      echo "  Waiting 10 seconds before retrying..."
+      sleep 10
+    else
+      echo "ERROR: Input files still not accessible after $max_retries attempts. Aborting."
+      exit 1
+    fi
+  fi
+  retry_count=$((retry_count+1))
+done
+
+echo "All input files verified successfully!"
 echo "Extracting ref_f3d and running prep_phydata_dbz.py in parallel for all members..."
 for imem in $(seq 1 $nens); do
   memcharv0="mem"$(printf %03i $imem)
