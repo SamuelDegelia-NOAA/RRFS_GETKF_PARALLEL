@@ -11,6 +11,9 @@ app_path_observation_chronicle: rdas/observation_chronicle/atmosphere
 
 # Places where we deviate from the generic file name of a yaml
 # ------------------------------------------------------------
+output_mean_prior_file: atmosphere_output_mean_prior
+posterior_output_file: atmosphere_output_mean_posterior
+output_increment_file: atmosphere_output_ensemble_mean_increments
 output_ensemble_increments_file: atmosphere_output_ensemble_increments
 model_file: atmosphere_model_pseudo
 initial_condition_file: atmosphere_background
@@ -75,7 +78,7 @@ driver_do_posterior_observer: false
 driver_save_posterior_mean: true
 driver_save_posterior_ensemble: false
 driver_save_prior_mean: true
-driver_save_posterior_mean_increment: false
+driver_save_posterior_mean_increment: true
 driver_save_posterior_ensemble_increments: true
 
 # Model things
