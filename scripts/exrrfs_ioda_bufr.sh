@@ -62,8 +62,7 @@ export PDY=${YYYYMMDD}
 OBSPATH=${obspath}
 run_process_prepbufr=false
 obs_file=prepbufr
-#checkfile=${OBSPATH}/rrfs.t${HH}z.prepbufr.tm00 # do not have access to this file
-checkfile=${OBSPATH}/rrfs.t${HH}z.prepbufr.tm00.nr
+checkfile=${OBSPATH}/rrfs.t${HH}z.prepbufr.tm00 # do not have access to this file
 if [ -r "${checkfile}" ]; then
   echo "Found ${checkfile}; Use it as observation "
   cp -p ${checkfile} ${obs_file}
@@ -95,10 +94,10 @@ export LD_LIBRARY_PATH="${RDASApp}/build/lib64:${LD_LIBRARY_PATH}"
 yaml_list=(
 "prepbufr_adpsfc.yaml"
 #"prepbufr_adpupa.yaml"  # use python
-#"prepbufr_aircar.yaml" # not in NR obs, TODO: turn me back on
+"prepbufr_aircar.yaml"
 "prepbufr_aircft.yaml"
 "prepbufr_ascatw.yaml"
-#"prepbufr_msonet.yaml" # not in NR obs, TODO: turn me back on
+"prepbufr_msonet.yaml"
 "prepbufr_proflr.yaml"
 "prepbufr_rassda.yaml"
 "prepbufr_sfcshp.yaml"

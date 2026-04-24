@@ -130,6 +130,7 @@ export FI_OFI_RXM_SAR_LIMIT=3145728
 export OMP_STACKSIZE=500M
 export OMP_NUM_THREADS=8
 APRUN="mpiexec -n $(( PBS_NP * PBS_NUM_NODES )) -ppn ${PBS_NP} --cpu-bind core --depth ${OMP_NUM_THREADS}"
+APRUN_UA="mpiexec -n $(( PBS_NP * PBS_NUM_NODES )) -ppn ${PBS_NP} --cpu-bind core --depth 1"
 
 #
 #-----------------------------------------------------------------------
@@ -220,6 +221,56 @@ fi
 #
 #-----------------------------------------------------------------------
 #
+# Post-process the JEDI increments
+#    1) Convert wind increments from D-grid to A-grid
+#    2) Apply increments to the background fields
+#
+#-----------------------------------------------------------------------
+#
+
+# Copy or link in the increment files
+cp ${bkpath}/inc_jedi_mean.fv_core.res.nc              ./inc_jedi_mean.fv_core.res.nc
+ln -sf ${bkpath}/inc_jedi_mean.fv_tracer.res.nc        ./inc_jedi.fv_tracer.res.nc
+ln -sf ${bkpath}/inc_jedi_mean.phy_data.nc             ./inc_jedi.phy_data.nc
+ln -sf ${bkpath}/background_jedi_mean.fv_core.res.nc   ./fv_core.res.tile1.nc
+ln -sf ${bkpath}/background_jedi_mean.fv_tracer.res.nc ./fv_tracer.res.tile1.nc
+ln -sf ${bkpath}/background_jedi_mean.phy_data.nc      ./phy_data.nc
+
+# Convert a to d grid winds
+# This will create the new inc_jedi.fv_core.res.nc file
+export pgm="rdas_ua2u.x"
+ua2u_exec="${EXECdir}/bin/${pgm}"
+cp "${ua2u_exec}" ./${pgm}
+ln -snf ${fixgriddir}/fv3_grid_spec  fv3_grid_spec
+LD_LIBRARY_PATH="/apps/ops/test/spack-stack-nco-1.9/oneapi/2024.2.1/hdf5-1.14.3-umtw5lv/lib:${LD_LIBRARY_PATH}" \
+  ${APRUN_UA} ./${pgm} ua_update_u --in_grid=fv3_grid_spec --in_file=inc_jedi_mean.fv_core.res.nc --out_file=inc_jedi.fv_core.res.nc >>"$pgmout" 2>errfile
+mv errfile errfile_ua2u
+
+# Need to get the mean background of u,v since JEDI does not output them
+# Then will append that to the existing background file
+ncea -v u,v ${anldir}/data/inputs/mem*/fv_core.res.tile1.nc ensmean_uv.nc
+ncks -A ensmean_uv.nc fv_core.res.tile1.nc
+
+# Now apply the increments to the background file with NCO tools
+dynfile=fv_core.res.tile1.nc
+trafile=fv_tracer.res.tile1.nc
+phyfile=phy_data.nc
+set +x
+if ( ! time ( module purge ; module load intel udunits szip hdf5 netcdf gsl nco ; module list ; set -x ; ${USHdir}/apply_jedi_incs.sh "TRUE" ${dynfile} ${trafile} ${phyfile}) ); then
+  echo "Failed applying JEDI increments"
+  exit 6
+else
+  echo "Successfully applied JEDI increments"
+  cp fv_core_analysis.res.tile1.nc ${dynfile}
+  cp fv_tracer_analysis.res.tile1.nc ${trafile}
+  if [ "${DO_ENKF_RADAR_REF}" = "TRUE" ]; then
+    cp phy_data_analysis.nc ${phyfile}
+  fi
+fi
+
+#
+#-----------------------------------------------------------------------
+#
 # link or copy background and grib configuration files
 #
 #  Using ncks to add phis (terrain) into cold start input background.
@@ -233,12 +284,10 @@ IO_LAYOUT_Y="1"
 n_iolayouty=$(($IO_LAYOUT_Y-1))
 list_iolayout=$(seq 0 $n_iolayouty)
 ln -snf ${fixgriddir}/fv3_akbk  fv3_akbk
-ln -snf ${fixgriddir}/fv3_grid_spec  fv3_grid_spec
-
-ln -snf ${bkpath}/letkf-meanposterior-fv3_lam-C775.fv_core.res.nc   ./fv3_dynvars
-ln -snf ${bkpath}/letkf-meanposterior-fv3_lam-C775.fv_tracer.res.nc ./fv3_tracer
-ln -snf ${bkpath}/letkf-meanposterior-fv3_lam-C775.sfc_data.nc      ./fv3_sfcdata
-ln -snf ${bkpath}/letkf-meanposterior-fv3_lam-C775.phy_data.nc      ./fv3_phyvars
+mv fv_core.res.tile1.nc                          fv3_dynvars
+mv fv_tracer.res.tile1.nc                        fv3_tracer
+mv phy_data.nc                                   fv3_phyvars
+ln -snf ${bkpath}/analysis_jedi_mean.sfc_data.nc fv3_sfcdata
 fv3lam_bg_type=0
 
 # update times in coupler.res to current cycle time
@@ -255,10 +304,6 @@ sed -i "s/hh/${HH}/"     coupler.res
 #
 #-----------------------------------------------------------------------
 
-#OBSTYPE_SOURCE="rap"
-#OBSPATH="/lfs/h3/emc/eib/noscrub/emc.lam/rrfs-stagedata//obs_rap"
-#OBSPATH_NSSLMOSIAC="/lfs/h3/emc/eib/noscrub/emc.lam/rrfs-stagedata//reflectivity/upperair/mrms/conus/MergedReflectivityQC/"
-#OBSPATH_PM="/lfs4/BMC/public/data/airnow/hourly_aqobs"
 OBSTYPE_SOURCE="rrfs"
 OBSPATH=${obsbase}
 SUBH=""

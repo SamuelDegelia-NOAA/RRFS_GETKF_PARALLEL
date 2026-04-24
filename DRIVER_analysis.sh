@@ -73,7 +73,7 @@ GETKF_LOG="getkf.log"
 # GSI verification
 VERIF_JOB_NAME="na3km_verif"
 VERIF_SELECT="1:ncpus=128:ompthreads=8:mem=500G"
-VERIF_WALLTIME="00:15:00"
+VERIF_WALLTIME="01:00:00"
 VERIF_PLACE="excl"
 VERIF_LOG="verif.log"
 
@@ -118,6 +118,7 @@ RDASApp='${RDASApp}'
 rrfsworkflow='${rrfsworkflow}'
 rrfspath='${rrfspath}'
 reflpath='${reflpath}'
+obsbase='${obsbase}'
 obspath='${obspath}'
 baserundir='${baserundir}'
 enspath='${enspath}'
