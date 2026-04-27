@@ -232,9 +232,6 @@ fi
 cp ${bkpath}/inc_jedi_mean.fv_core.res.nc              ./inc_jedi_mean.fv_core.res.nc
 ln -sf ${bkpath}/inc_jedi_mean.fv_tracer.res.nc        ./inc_jedi.fv_tracer.res.nc
 ln -sf ${bkpath}/inc_jedi_mean.phy_data.nc             ./inc_jedi.phy_data.nc
-ln -sf ${bkpath}/background_jedi_mean.fv_core.res.nc   ./fv_core.res.tile1.nc
-ln -sf ${bkpath}/background_jedi_mean.fv_tracer.res.nc ./fv_tracer.res.tile1.nc
-ln -sf ${bkpath}/background_jedi_mean.phy_data.nc      ./phy_data.nc
 
 # Convert a to d grid winds
 # This will create the new inc_jedi.fv_core.res.nc file
@@ -246,27 +243,60 @@ LD_LIBRARY_PATH="/apps/ops/test/spack-stack-nco-1.9/oneapi/2024.2.1/hdf5-1.14.3-
   ${APRUN_UA} ./${pgm} ua_update_u --in_grid=fv3_grid_spec --in_file=inc_jedi_mean.fv_core.res.nc --out_file=inc_jedi.fv_core.res.nc >>"$pgmout" 2>errfile
 mv errfile errfile_ua2u
 
-# Need to get the mean background of u,v since JEDI does not output them
-ncea -v u,v ${anldir}/data/inputs/mem*/fv_core.res.tile1.nc ensmean_uv.nc
+# Compute complete ensemble means for background files using ncea with explicit variable
+# selection. This avoids dimension mismatch issues between staggered grid components
+# (xaxis_1/yaxis_1 vs xaxis_2/yaxis_2) that occurred when appending u,v to the JEDI
+# background file.
+
+echo "Computing ensemble mean for fv_core background..."
+ncea -v xaxis_1,xaxis_2,yaxis_1,yaxis_2,zaxis_1,Time,u,v,W,DZ,T,delp,phis,ua,va \
+  ${anldir}/data/inputs/mem*/fv_core.res.tile1.nc fv_core.res.tile1.nc
 if [ $? -ne 0 ]; then
-  echo "ERROR: Failed to compute ensemble mean u,v"
+  echo "ERROR: Failed to compute ensemble mean for fv_core background"
   exit 7
 fi
 
-# Resolve the symlink to get the actual target
-bk_target=$(readlink -f fv_core.res.tile1.nc)
-
-# Use ncks to append variables from ensmean_uv to the target file directly
-# This avoids symlink I/O issues and is much faster
-echo "Appending ensemble mean u,v to background file..."
-ncks -A --no_rec_dmn ensmean_uv.nc "${bk_target}" > /dev/null 2>&1
-
+echo "Computing ensemble mean for fv_tracer background..."
+# Dynamically include all *_nc variables (e.g. ice_nc, liq_nc, rain_nc) from the first member.
+# ncdump -h outputs CDL format: "  float varname(dim1, dim2, ...)"
+# We match lines declaring variables ending in _nc and extract the variable name before "(".
+nc_vars=$(ncdump -h ${anldir}/data/inputs/mem001/fv_tracer.res.tile1.nc \
+  | grep -E '^\s+(float|double|int|short)\s+[a-zA-Z][a-zA-Z0-9_]*_nc\s*\(' \
+  | awk '{print $2}' | sed 's/(.*$//' \
+  | sort -u | tr '\n' ',' | sed 's/,$//' \
+  || true)
+tracer_vars="xaxis_1,xaxis_2,yaxis_1,yaxis_2,zaxis_1,Time,sphum,liq_wat,ice_wat,rainwat,snowwat,graupel,o3mr${nc_vars:+,${nc_vars}}"
+ncea -v "${tracer_vars}" \
+  ${anldir}/data/inputs/mem*/fv_tracer.res.tile1.nc fv_tracer.res.tile1.nc
 if [ $? -ne 0 ]; then
-  echo "ERROR: Failed to append u,v to background file"
+  echo "ERROR: Failed to compute ensemble mean for fv_tracer background"
   exit 7
 fi
 
-echo "Successfully appended u,v to background file"
+echo "Computing ensemble mean for phy_data background..."
+ncea -v xaxis_1,xaxis_2,yaxis_1,yaxis_2,zaxis_1,Time,ref_f3d \
+  ${anldir}/data/inputs/mem*/phy_data.nc phy_data.nc
+if [ $? -ne 0 ]; then
+  echo "ERROR: Failed to compute ensemble mean for phy_data background"
+  exit 7
+fi
+
+echo "Computing ensemble mean for sfc_data background..."
+ncea -v xaxis_1,xaxis_2,yaxis_1,yaxis_2,zaxis_1,Time,ref_f3d,t2m,q2m,f10m,tslb,smois,tsea,tsfc,tsfcl \
+  ${anldir}/data/inputs/mem*/sfc_data.nc sfc_data.nc
+if [ $? -ne 0 ]; then
+  echo "ERROR: Failed to compute ensemble mean for sfc_data background"
+  exit 7
+fi
+
+# Copy fv_srf_wnd from member 1 (no ensemble mean needed)
+cp ${anldir}/data/inputs/mem001/fv_srf_wnd.res.tile1.nc fv_srf_wnd.res.tile1.nc
+if [ $? -ne 0 ]; then
+  echo "ERROR: Failed to copy fv_srf_wnd from member 1"
+  exit 7
+fi
+
+echo "Successfully computed all ensemble mean background files"
 
 # Now apply the increments to the background file with NCO tools
 dynfile=fv_core.res.tile1.nc
@@ -304,7 +334,7 @@ ln -snf ${fixgriddir}/fv3_akbk  fv3_akbk
 mv fv_core.res.tile1.nc                          fv3_dynvars
 mv fv_tracer.res.tile1.nc                        fv3_tracer
 mv phy_data.nc                                   fv3_phyvars
-ln -snf ${bkpath}/analysis_jedi_mean.sfc_data.nc fv3_sfcdata
+mv sfc_data.nc fv3_sfcdata
 fv3lam_bg_type=0
 
 # update times in coupler.res to current cycle time
