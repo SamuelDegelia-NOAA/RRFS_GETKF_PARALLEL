@@ -158,6 +158,7 @@ cp ${envfile} ${anldir}
 cp ${envfile} ${verifdir}
 cp ./scripts/prep_ioda_cast.sh ${bufrdir}
 cp ./scripts/prep_phydata_dbz.py ${anldir}
+cp ./scripts/apply_jedi_incs.sh ${verifdir}
 
 # Create radar observations
 job1=$(bash "${submit}" \

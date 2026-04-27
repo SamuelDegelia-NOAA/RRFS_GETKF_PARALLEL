@@ -247,27 +247,33 @@ LD_LIBRARY_PATH="/apps/ops/test/spack-stack-nco-1.9/oneapi/2024.2.1/hdf5-1.14.3-
 mv errfile errfile_ua2u
 
 # Need to get the mean background of u,v since JEDI does not output them
-# Then will append that to the existing background file, but first fix chunking
-# to ensure compatibility with the target file's chunk sizes
-ncea -v u,v ${anldir}/data/inputs/mem*/fv_core.res.tile1.nc ensmean_uv_raw.nc
-ncks -O --chunk_policy rechunk_all --cnk_dmn unlimited,-1 --cnk_dmn Time,1 --cnk_dmn pfull,-1 ensmean_uv_raw.nc ensmean_uv.nc
+ncea -v u,v ${anldir}/data/inputs/mem*/fv_core.res.tile1.nc ensmean_uv.nc
 if [ $? -ne 0 ]; then
-  echo "ERROR: Failed to rechunk ensmean_uv_raw.nc"
+  echo "ERROR: Failed to compute ensemble mean u,v"
   exit 7
 fi
-rm -f ensmean_uv_raw.nc
-ncks -A ensmean_uv.nc fv_core.res.tile1.nc
+
+# Resolve the symlink to get the actual target
+bk_target=$(readlink -f fv_core.res.tile1.nc)
+
+# Use ncks to append variables from ensmean_uv to the target file directly
+# This avoids symlink I/O issues and is much faster
+echo "Appending ensemble mean u,v to background file..."
+ncks -A --no_rec_dmn ensmean_uv.nc "${bk_target}" > /dev/null 2>&1
+
 if [ $? -ne 0 ]; then
   echo "ERROR: Failed to append u,v to background file"
   exit 7
 fi
+
+echo "Successfully appended u,v to background file"
 
 # Now apply the increments to the background file with NCO tools
 dynfile=fv_core.res.tile1.nc
 trafile=fv_tracer.res.tile1.nc
 phyfile=phy_data.nc
 set +x
-if ( ! time ( module purge ; module load intel udunits szip hdf5 netcdf gsl nco ; module list ; set -x ; ${USHdir}/apply_jedi_incs.sh "TRUE" ${dynfile} ${trafile} ${phyfile}) ); then
+if ( ! time ( module purge ; module load intel udunits szip hdf5 netcdf gsl nco ; module list ; set -x ; ./apply_jedi_incs.sh "TRUE" ${dynfile} ${trafile} ${phyfile}) ); then
   echo "Failed applying JEDI increments"
   exit 6
 else
