@@ -89,6 +89,7 @@ cp "${OBSPATH}/rrfs.t${cyc}z.crisf4.tm00.bufr_d" crisfsbufr
 #
 #-----------------------------------------------------------------------
 #
+set +e
 export LD_LIBRARY_PATH="${RDASApp}/build/lib64:${LD_LIBRARY_PATH}"
 
 yaml_list=(
@@ -112,17 +113,20 @@ for yamlfile in "${yaml_list[@]}"; do
   sed -i "s/@referenceTime@/${formatted_time}/" "${yamlfile}"
   cp -p ${FIX_JEDI}/ioda_empty.nc  ioda_${message_type}.nc
   if [[ ${run_process_prepbufr} ]]; then
-    ${EXECdir}/bin/$pgm ${yamlfile} >> $pgmout 2>errfile
+    ${EXECdir}/bin/$pgm ${yamlfile} >> $pgmout 2>&1
     export err=$?
     if [ $err -ne 0 ]; then
-      if grep -qF "No valid BUFR subsets were found" errfile; then
+      if tail -20 $pgmout | grep -qF "No valid BUFR subsets were found"; then
         echo "WARNING: ${message_type}: no valid BUFR subsets in input. Skipping this type." >> "${pgmout}"
         export err=0
+      else
+        echo "ERROR: ${message_type} failed with error code $err" >> "${pgmout}"
+        # Continue to next iteration or break here if you want to exit
       fi
     fi
-    mv errfile errfile_${message_type}
   fi
 done
+set -e
 #
 #-----------------------------------------------------------------------
 #
