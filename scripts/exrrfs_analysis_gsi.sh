@@ -246,27 +246,62 @@ LD_LIBRARY_PATH="/apps/ops/test/spack-stack-nco-1.9/oneapi/2024.2.1/hdf5-1.14.3-
   ${APRUN_UA} ./${pgm} ua_update_u --in_grid=fv3_grid_spec --in_file=inc_jedi_mean.fv_core.res.nc --out_file=inc_jedi.fv_core.res.nc >>"$pgmout" 2>errfile
 mv errfile errfile_ua2u
 
-# Need to get the mean background of u,v since JEDI does not output them
-ncea -v u,v ${anldir}/data/inputs/mem*/fv_core.res.tile1.nc ensmean_uv.nc
+# Compute the full ensemble mean background using ens_mean_recenter_P2DIO.exe
+# This replaces the ncea/ncks approach which was slow and had dimension mismatch issues
+
+# Link ensemble member files for ens_mean_recenter_P2DIO.exe
+for imem in $(seq 1 $NUM_ENS_MEMBERS); do
+  memberstring=$(printf "%03d" $imem)
+  bkmempath=${anldir}/data/inputs/mem${memberstring}
+  ln -sf ${bkmempath}/fv_core.res.tile1.nc  ./fv3sar_tile1_mem${memberstring}_dynvar
+  ln -sf ${bkmempath}/fv_tracer.res.tile1.nc ./fv3sar_tile1_mem${memberstring}_tracer
+  ln -sf ${bkmempath}/sfc_data.nc            ./fv3sar_tile1_mem${memberstring}_sfcvar
+  if [ $imem -eq 1 ]; then
+    # Prepare the data structure for ensemble mean output
+    cp -f ${bkmempath}/fv_core.res.tile1.nc  fv3sar_tile1_dynvar
+    cp -f ${bkmempath}/fv_tracer.res.tile1.nc fv3sar_tile1_tracer
+    cp -f ${bkmempath}/sfc_data.nc            fv3sar_tile1_sfcvar
+  fi
+done
+
+# Create namelist.ens for ens_mean_recenter_P2DIO.exe
+cat << EOF > namelist.ens
+&setup
+  fv3_io_layout_y=1,
+  ens_size=${NUM_ENS_MEMBERS},
+  filebase='fv3sar_tile1'
+  filetail(1)='dynvar'
+  filetail(2)='tracer'
+  filetail(3)='sfcvar'
+  numvar(1)=9
+  numvar(2)=13
+  numvar(3)=10
+  varlist(1)="u v W DZ T delp phis ua va"
+  varlist(2)="sphum liq_wat ice_wat rainwat snowwat graupel water_nc ice_nc rain_nc o3mr liq_aero ice_aero sgs_tke"
+  varlist(3)="t2m q2m f10m tslb smois tsea tsfc tsfcl emis_ice emis_lnd"
+  l_write_mean=.true.
+  l_recenter=.false.
+/
+EOF
+
+# Run ens_mean_recenter_P2DIO.exe to compute the full ensemble mean
+export pgm="ens_mean_recenter_P2DIO.exe"
+${APRUN_UA} ${EXECdir}/$pgm < namelist.ens >>$pgmout 2>errfile
 if [ $? -ne 0 ]; then
-  echo "ERROR: Failed to compute ensemble mean u,v"
+  echo "ERROR: Failed to compute ensemble mean with ${pgm}"
+  cat errfile
   exit 7
 fi
+mv errfile errfile_ensmean
 
-# Resolve the symlink to get the actual target
-bk_target=$(readlink -f fv_core.res.tile1.nc)
+# Remove checksums from ensemble mean files (they will be recalculated)
+for files in fv3sar_tile1_dynvar fv3sar_tile1_sfcvar fv3sar_tile1_tracer; do
+  ncatted -a checksum,,d,, $files
+done
 
-# Use ncks to append variables from ensmean_uv to the target file directly
-# This avoids symlink I/O issues and is much faster
-echo "Appending ensemble mean u,v to background file..."
-ncks -A --no_rec_dmn ensmean_uv.nc "${bk_target}" > /dev/null 2>&1
-
-if [ $? -ne 0 ]; then
-  echo "ERROR: Failed to append u,v to background file"
-  exit 7
-fi
-
-echo "Successfully appended u,v to background file"
+# Link ensemble mean files to expected paths, replacing the JEDI background links
+ln -snf fv3sar_tile1_dynvar  fv_core.res.tile1.nc
+ln -snf fv3sar_tile1_tracer  fv_tracer.res.tile1.nc
 
 # Now apply the increments to the background file with NCO tools
 dynfile=fv_core.res.tile1.nc
