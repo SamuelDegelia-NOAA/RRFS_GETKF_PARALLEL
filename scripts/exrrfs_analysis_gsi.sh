@@ -230,12 +230,8 @@ fi
 #
 
 # Copy or link in the increment files
-cp ${bkpath}/inc_jedi_mean.fv_core.res.nc              ./inc_jedi_mean.fv_core.res.nc
+ln -sf ${bkpath}/inc_jedi_mean.fv_core.res.nc          ./inc_jedi_mean.fv_core.res.nc # will be renamed once we add d-grid winds
 ln -sf ${bkpath}/inc_jedi_mean.fv_tracer.res.nc        ./inc_jedi.fv_tracer.res.nc
-ln -sf ${bkpath}/inc_jedi_mean.phy_data.nc             ./inc_jedi.phy_data.nc
-ln -sf ${bkpath}/background_jedi_mean.fv_core.res.nc   ./fv_core.res.tile1.nc
-ln -sf ${bkpath}/background_jedi_mean.fv_tracer.res.nc ./fv_tracer.res.tile1.nc
-ln -sf ${bkpath}/background_jedi_mean.phy_data.nc      ./phy_data.nc
 
 # Convert a to d grid winds
 # This will create the new inc_jedi.fv_core.res.nc file
@@ -246,15 +242,13 @@ ln -snf ${fixgriddir}/fv3_grid_spec  fv3_grid_spec
 LD_LIBRARY_PATH="/apps/ops/test/spack-stack-nco-1.9/oneapi/2024.2.1/hdf5-1.14.3-umtw5lv/lib:${LD_LIBRARY_PATH}" \
   ${APRUN_UA} ./${pgm} ua_update_u --in_grid=fv3_grid_spec --in_file=inc_jedi_mean.fv_core.res.nc --out_file=inc_jedi.fv_core.res.nc >>"$pgmout" 2>errfile
 mv errfile errfile_ua2u
+rm inc_jedi_mean.fv_core.res.nc
 
 # Compute the full ensemble mean background using ens_mean_recenter_P2DIO.exe
-# This replaces the ncea/ncks approach which was slow and had dimension mismatch issues
-
-# Link ensemble member files for ens_mean_recenter_P2DIO.exe
 for imem in $(seq 1 $NUM_ENS_MEMBERS); do
   memberstring=$(printf "%03d" $imem)
   bkmempath=${anldir}/data/inputs/mem${memberstring}
-  ln -sf ${bkmempath}/fv_core.res.tile1.nc  ./fv3sar_tile1_mem${memberstring}_dynvar
+  ln -sf ${bkmempath}/fv_core.res.tile1.nc   ./fv3sar_tile1_mem${memberstring}_dynvar
   ln -sf ${bkmempath}/fv_tracer.res.tile1.nc ./fv3sar_tile1_mem${memberstring}_tracer
   ln -sf ${bkmempath}/sfc_data.nc            ./fv3sar_tile1_mem${memberstring}_sfcvar
   if [ $imem -eq 1 ]; then
@@ -300,26 +294,25 @@ for files in fv3sar_tile1_dynvar fv3sar_tile1_sfcvar fv3sar_tile1_tracer; do
   ncatted -a checksum,,d,, $files
 done
 
-# Link ensemble mean files to expected paths, replacing the JEDI background links
-ln -snf fv3sar_tile1_dynvar  fv_core.res.tile1.nc
-ln -snf fv3sar_tile1_tracer  fv_tracer.res.tile1.nc
+# Rename the ensemble mean files so we can apply the increments to them
+mv fv3sar_tile1_dynvar fv3_dynvars
+mv fv3sar_tile1_tracer fv3_tracer
+mv fv3sar_tile1_sfcvar fv3_sfcdata
 
 # Now apply the increments to the background file with Python/xarray
-dynfile=fv_core.res.tile1.nc
-trafile=fv_tracer.res.tile1.nc
-phyfile=phy_data.nc
+dynfile=fv3_dynvars
+trafile=fv3_tracer
+phyfile=fv3_phyvars
 set +x
-if ( ! time ( set -x ; python3 ./apply_jedi_incs.py "TRUE" ${dynfile} ${trafile} ${phyfile}) ); then
+if ( ! time ( set -x ; python3 ./apply_jedi_incs.py "FALSE" ${dynfile} ${trafile} ${phyfile}) ); then
   echo "Failed applying JEDI increments"
   exit 6
 else
   echo "Successfully applied JEDI increments"
-  cp fv_core_analysis.res.tile1.nc ${dynfile}
-  cp fv_tracer_analysis.res.tile1.nc ${trafile}
-  if [ "${DO_ENKF_RADAR_REF}" = "TRUE" ]; then
-    cp phy_data_analysis.nc ${phyfile}
-  fi
+  mv fv_core_analysis.res.tile1.nc ${dynfile}
+  mv fv_tracer_analysis.res.tile1.nc ${trafile}
 fi
+set -x
 
 #
 #-----------------------------------------------------------------------
@@ -337,10 +330,7 @@ IO_LAYOUT_Y="1"
 n_iolayouty=$(($IO_LAYOUT_Y-1))
 list_iolayout=$(seq 0 $n_iolayouty)
 ln -snf ${fixgriddir}/fv3_akbk  fv3_akbk
-mv fv_core.res.tile1.nc                          fv3_dynvars
-mv fv_tracer.res.tile1.nc                        fv3_tracer
-mv phy_data.nc                                   fv3_phyvars
-ln -snf ${bkpath}/analysis_jedi_mean.sfc_data.nc fv3_sfcdata
+ln -snf ${bkpath}/data/inputs/mem001/phy_data.nc fv3_phyvars # is this actually used? or is cref recomputed?
 fv3lam_bg_type=0
 
 # update times in coupler.res to current cycle time
