@@ -18,8 +18,16 @@
 ###   phyfile   - path to phy_data background file (e.g. phy_data.nc)
 ###
 
+import os
 import sys
 import xarray as xr
+
+# Use dask for lazy/chunked I/O when available; fall back to eager loading.
+try:
+    import dask  # noqa: F401
+    _CHUNKS = "auto"
+except ImportError:
+    _CHUNKS = None
 
 
 def apply_increments(bkg_path, inc_path, out_path, var_names):
@@ -37,8 +45,12 @@ def apply_increments(bkg_path, inc_path, out_path, var_names):
     var_names : list of str
         Variable names to update (the same name must exist in both files).
     """
-    bkg = xr.open_dataset(bkg_path, chunks="auto")
-    inc = xr.open_dataset(inc_path, chunks="auto")
+    for path in (bkg_path, inc_path):
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Input file not found: {path}")
+
+    bkg = xr.open_dataset(bkg_path, chunks=_CHUNKS)
+    inc = xr.open_dataset(inc_path, chunks=_CHUNKS)
 
     out = bkg.copy(deep=True)
 
@@ -51,9 +63,14 @@ def apply_increments(bkg_path, inc_path, out_path, var_names):
             result = bkg[var] + inc[var].astype(orig_dtype)
             result.attrs = bkg[var].attrs
             out[var] = result
+        else:
+            missing = [v for v in (bkg_path, inc_path)
+                       if var not in (bkg if v == bkg_path else inc)]
+            print(f"WARNING: variable '{var}' not found in: "
+                  f"{', '.join(missing)}; skipping", file=sys.stderr)
 
     # Preserve original dtypes for all variables in the output file.
-    encoding = {var: {"dtype": out[var].dtype} for var in out.data_vars}
+    encoding = {var: {"dtype": str(out[var].dtype)} for var in out.data_vars}
 
     out.to_netcdf(out_path, encoding=encoding)
 
