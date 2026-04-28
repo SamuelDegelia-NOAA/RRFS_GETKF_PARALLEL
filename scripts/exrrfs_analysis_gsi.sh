@@ -304,12 +304,12 @@ done
 ln -snf fv3sar_tile1_dynvar  fv_core.res.tile1.nc
 ln -snf fv3sar_tile1_tracer  fv_tracer.res.tile1.nc
 
-# Now apply the increments to the background file with NCO tools
+# Now apply the increments to the background file with Python/xarray
 dynfile=fv_core.res.tile1.nc
 trafile=fv_tracer.res.tile1.nc
 phyfile=phy_data.nc
 set +x
-if ( ! time ( module purge ; module load intel udunits szip hdf5 netcdf gsl nco ; module list ; set -x ; ./apply_jedi_incs.sh "TRUE" ${dynfile} ${trafile} ${phyfile}) ); then
+if ( ! time ( set -x ; python3 ./apply_jedi_incs.py "TRUE" ${dynfile} ${trafile} ${phyfile}) ); then
   echo "Failed applying JEDI increments"
   exit 6
 else
