@@ -129,8 +129,9 @@ set -euox pipefail
 export FI_OFI_RXM_SAR_LIMIT=3145728
 export OMP_STACKSIZE=500M
 export OMP_NUM_THREADS=8
-APRUN="mpiexec -n $(( PBS_NP * PBS_NUM_NODES )) -ppn ${PBS_NP} --cpu-bind core --depth ${OMP_NUM_THREADS}"
-APRUN_UA="mpiexec -n $(( PBS_NP * PBS_NUM_NODES )) -ppn ${PBS_NP} --cpu-bind core --depth 1"
+APRUN="mpiexec -n $(( PBS_NP * 1 )) -ppn ${PBS_NP} --cpu-bind core --depth ${OMP_NUM_THREADS}"
+APRUN_UA="mpiexec -n $(( PBS_NP * 1 )) -ppn ${PBS_NP} --cpu-bind core --depth 1"
+APRUN_MEAN="mpiexec -n $(( PBS_NP * PBS_NUM_NODES )) -ppn ${PBS_NP} --cpu-bind core --depth 1"
 
 #
 #-----------------------------------------------------------------------
@@ -286,7 +287,7 @@ EOF
 
 # Run ens_mean_recenter_P2DIO.exe to compute the full ensemble mean
 export pgm="ens_mean_recenter_P2DIO.exe"
-${APRUN_UA} ${EXECdir}/$pgm < namelist.ens >>$pgmout 2>errfile
+${APRUN_MEAN} ${EXECdir}/$pgm < namelist.ens >>$pgmout 2>errfile
 if [ $? -ne 0 ]; then
   echo "ERROR: Failed to compute ensemble mean with ${pgm}"
   cat errfile
