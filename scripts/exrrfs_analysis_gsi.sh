@@ -252,9 +252,16 @@ mv errfile errfile_ua2u
 # Link ensemble member files for ens_mean_recenter_P2DIO.exe
 for imem in $(seq 1 $NUM_ENS_MEMBERS); do
   memberstring=$(printf "%03d" $imem)
-  ln -sf ${anldir}/data/inputs/mem${memberstring}/fv_core.res.tile1.nc  ./fv3sar_tile1_mem${memberstring}_dynvar
-  ln -sf ${anldir}/data/inputs/mem${memberstring}/fv_tracer.res.tile1.nc ./fv3sar_tile1_mem${memberstring}_tracer
-  ln -sf ${anldir}/data/inputs/mem${memberstring}/sfc_data.nc            ./fv3sar_tile1_mem${memberstring}_sfcvar
+  bkmempath=${anldir}/data/inputs/mem${memberstring}
+  ln -sf ${bkmempath}/fv_core.res.tile1.nc  ./fv3sar_tile1_mem${memberstring}_dynvar
+  ln -sf ${bkmempath}/fv_tracer.res.tile1.nc ./fv3sar_tile1_mem${memberstring}_tracer
+  ln -sf ${bkmempath}/sfc_data.nc            ./fv3sar_tile1_mem${memberstring}_sfcvar
+  if [ $imem -eq 1 ]; then
+    # Prepare the data structure for ensemble mean output
+    cp -f ${bkmempath}/fv_core.res.tile1.nc  fv3sar_tile1_dynvar
+    cp -f ${bkmempath}/fv_tracer.res.tile1.nc fv3sar_tile1_tracer
+    cp -f ${bkmempath}/sfc_data.nc            fv3sar_tile1_sfcvar
+  fi
 done
 
 # Create namelist.ens for ens_mean_recenter_P2DIO.exe
@@ -279,7 +286,7 @@ EOF
 
 # Run ens_mean_recenter_P2DIO.exe to compute the full ensemble mean
 export pgm="ens_mean_recenter_P2DIO.exe"
-${APRUN_UA} ${EXECdir}/bin/$pgm < namelist.ens >>$pgmout 2>errfile
+${APRUN_UA} ${EXECdir}/$pgm < namelist.ens >>$pgmout 2>errfile
 if [ $? -ne 0 ]; then
   echo "ERROR: Failed to compute ensemble mean with ${pgm}"
   cat errfile
