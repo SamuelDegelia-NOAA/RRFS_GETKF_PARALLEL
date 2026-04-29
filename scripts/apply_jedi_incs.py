@@ -18,8 +18,10 @@
 ###   phyfile   - path to phy_data background file (e.g. phy_data.nc)
 ###
 
+import os
 import sys
 import xarray as xr
+import dask.array as da
 
 
 def apply_increments(bkg_path, inc_path, out_path, var_names):
@@ -37,23 +39,47 @@ def apply_increments(bkg_path, inc_path, out_path, var_names):
     var_names : list of str
         Variable names to update (the same name must exist in both files).
     """
+    for path in (bkg_path, inc_path):
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Input file not found: {path}")
+
+    # Load datasets with dask chunking for lazy evaluation
     bkg = xr.open_dataset(bkg_path, chunks="auto")
     inc = xr.open_dataset(inc_path, chunks="auto")
 
+    # Start with a deep copy of the background dataset
     out = bkg.copy(deep=True)
 
     for var in var_names:
         if var in bkg and var in inc:
-            # Cast the increment to the background dtype (float32) before
-            # addition so the arithmetic stays in single precision and avoids
-            # a temporary double-precision array.
+            # Extract as numpy/dask arrays to avoid dimension alignment issues.
+            # Use .values to get the underlying array (dask.array if chunked).
+            bkg_data = bkg[var].data
+            inc_data = inc[var].data
             orig_dtype = bkg[var].dtype
-            result = bkg[var] + inc[var].astype(orig_dtype)
-            result.attrs = bkg[var].attrs
+
+            # Cast increment to background dtype before addition to preserve precision
+            inc_data_cast = inc_data.astype(orig_dtype)
+
+            # Perform the addition (dask will compute this lazily if chunked)
+            result_data = bkg_data + inc_data_cast
+
+            # Wrap back into a DataArray with original coordinates and attributes
+            result = xr.DataArray(
+                result_data,
+                coords=bkg[var].coords,
+                dims=bkg[var].dims,
+                attrs=bkg[var].attrs,
+            )
             out[var] = result
+        else:
+            missing = [v for v in (bkg_path, inc_path)
+                       if var not in (bkg if v == bkg_path else inc)]
+            print(f"WARNING: variable '{var}' not found in: "
+                  f"{', '.join(missing)}; skipping", file=sys.stderr)
 
     # Preserve original dtypes for all variables in the output file.
-    encoding = {var: {"dtype": out[var].dtype} for var in out.data_vars}
+    encoding = {var: {"dtype": str(out[var].dtype)} for var in out.data_vars}
 
     out.to_netcdf(out_path, encoding=encoding)
 
