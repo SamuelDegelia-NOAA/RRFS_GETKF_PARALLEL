@@ -37,8 +37,8 @@ if [[ ! -d "${enspath}" ]]; then
     exit 1
 fi
 script_dir=$(cd "$(dirname "$0")" && pwd)
-source "${script_dir}/scripts/driver_analysis_common.sh"
-submit="${script_dir}/scripts/submit_job.sh"
+source "${script_dir}/util/driver_analysis_common.sh"
+submit="${script_dir}/util/submit_job.sh"
 
 # -----------------------------------------------------------------------
 # Per-task PBS resource settings.
@@ -156,9 +156,9 @@ cp ${envfile} ${bufrdir}
 cp ${envfile} ${mrmsdir}
 cp ${envfile} ${anldir}
 cp ${envfile} ${verifdir}
-cp ./scripts/prep_ioda_cast.sh ${bufrdir}
-cp ./scripts/prep_phydata_dbz.py ${anldir}
-cp ./scripts/apply_jedi_incs.py ${verifdir}
+cp ./util/prep_ioda_cast.sh ${bufrdir}
+cp ./util/prep_phydata_dbz.py ${anldir}
+cp ./util/apply_jedi_incs.py ${verifdir}
 
 # Create radar observations
 job1=$(bash "${submit}" \
@@ -213,7 +213,7 @@ job4=$(bash "${submit}" \
     -v "envfile=${envfile}" \
     -v "PBS_NP=${VERIF_PBS_NP},PBS_NUM_NODES=${VERIF_PBS_NUM_NODES}" \
     -W "depend=afterok:${job3}" \
-    "${script_dir}/scripts/exrrfs_analysis_gsi.sh")
+    "${script_dir}/scripts/exrrfs_verif_gsi.sh")
 
 echo "Submitted jobs: radar=${job1} bufr=${job2} getkf=${job3} verif=${job4}"
 

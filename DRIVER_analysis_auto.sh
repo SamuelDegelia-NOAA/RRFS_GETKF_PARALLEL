@@ -11,7 +11,7 @@ driver_script=${DRIVER_SCRIPT:-${script_dir}/DRIVER_analysis.sh}
 lock_acquired=0
 ensemble_size=${ENSEMBLE_SIZE:-30}
 
-source "${script_dir}/scripts/driver_analysis_common.sh"
+source "${script_dir}/util/driver_analysis_common.sh"
 
 if ! mkdir -p "${baserundir}"; then
     echo "ERROR: Unable to create baserundir: ${baserundir}" >&2
