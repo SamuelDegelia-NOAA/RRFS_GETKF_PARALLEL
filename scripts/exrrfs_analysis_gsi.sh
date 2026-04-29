@@ -303,7 +303,12 @@ mv fv3sar_tile1_sfcvar fv3_sfcdata
 dynfile=fv3_dynvars
 trafile=fv3_tracer
 phyfile=fv3_phyvars
-if ( ! time ( set +x ; module purge ; module use ${RDASApp}/modulefiles ; module load RDAS/wcoss2.intel ; set -x ; module list ; python3 ./apply_jedi_incs.py "FALSE" ${dynfile} ${trafile} ${phyfile}) ); then
+set +x
+module purge
+module use ${RDASApp}/modulefiles
+module load RDAS/wcoss2.intel
+set -x
+if ( ! time ( python3 -u ./apply_jedi_incs.py "FALSE" ${dynfile} ${trafile} ${phyfile}) ); then
   echo "Failed applying JEDI increments"
   exit 6
 else
@@ -311,6 +316,14 @@ else
   mv fv_core_analysis.res.tile1.nc ${dynfile}
   mv fv_tracer_analysis.res.tile1.nc ${trafile}
 fi
+
+# Restore the GSI modules
+set +x
+module reset
+source ${rrfsworkflow}/versions/run.ver
+module use ${rrfsworkflow}/modulefiles/tasks/wcoss2
+module load run_analysis_gsi.local
+set -x
 
 #
 #-----------------------------------------------------------------------
