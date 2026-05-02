@@ -128,8 +128,9 @@ ulimit -a
 set -euox pipefail
 export FI_OFI_RXM_SAR_LIMIT=3145728
 export OMP_STACKSIZE=500M
-export OMP_NUM_THREADS=8
-APRUN="mpiexec -n $(( PBS_NP * 1 )) -ppn ${PBS_NP} --cpu-bind core --depth ${OMP_NUM_THREADS}"
+export OMP_NUM_THREADS=16
+APRUN="mpiexec -n 480 -ppn 48 --cpu-bind core --depth 16" # hard coding for now
+#APRUN="mpiexec -n $(( PBS_NP * 1 )) -ppn ${PBS_NP} --cpu-bind core --depth ${OMP_NUM_THREADS}"
 APRUN_UA="mpiexec -n $(( PBS_NP * 1 )) -ppn ${PBS_NP} --cpu-bind core --depth 1"
 APRUN_MEAN="mpiexec -n $(( PBS_NP * PBS_NUM_NODES )) -ppn ${PBS_NP} --cpu-bind core --depth 1"
 
