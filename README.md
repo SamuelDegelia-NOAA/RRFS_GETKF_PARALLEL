@@ -2,11 +2,12 @@
 
 This tool performs a GETKF analysis whenever the staged RRFS Workflow ensemble becomes available.
 
-It only performs three tasks:
+It only performs four tasks:
 
 1. Convert prepbufr observations to IODA format
 2. Generate reflectivity IODA observations from MRMS data
 3. Run a GETKF analysis
+4. Runs a GSI-based posterior observer to get O-a diagnostics from (3) 
 
 It can either be run in standalone mode such as through:
 
