@@ -49,7 +49,7 @@ declare -A file_size_thresholds=(
 )
 
 log() {
-    echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] $*" | tee -a "${status_file}"
+    echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] $*" | tee -a "${status_file}" >&2
 }
 
 release_lock() {
@@ -113,32 +113,65 @@ increment_cycle() {
 cycle_exists_and_has_restarts() {
     local cycle="$1"
     local enspath
-    enspath=$(resolve_cycle_enspath "${cycle}") || return 1
-    validate_restart_files "${enspath}" >/dev/null
+
+    log "Checking cycle ${cycle}"
+    if ! enspath=$(resolve_cycle_enspath "${cycle}"); then
+        log "Cycle ${cycle} has no matching directory"
+        return 1
+    fi
+
+    log "Resolved cycle ${cycle} to ${enspath}"
+    log "Validating restart files in ${enspath}"
+    if validate_restart_files "${enspath}"; then
+        log "Cycle ${cycle} passed validation"
+        return 0
+    else
+        log "Cycle ${cycle} failed validation"
+        return 1
+    fi
 }
 
 get_next_cycle_to_process() {
     local last_processed_cycle
     local next_cycle
     local cycle
+    local path
 
     if ! last_processed_cycle=$(get_last_processed_cycle); then
+        log "No previous successful cycle found in ${cycle_history}; scanning filesystem for latest complete cycle"
         while read -r path; do
-            if cycle=$(parse_cycle_from_path "${path}") && cycle_exists_and_has_restarts "${cycle}"; then
+            log "Considering path: ${path}"
+
+            if ! cycle=$(parse_cycle_from_path "${path}"); then
+                log "Could not parse cycle from ${path}"
+                continue
+            fi
+
+            log "Parsed cycle ${cycle} from ${path}"
+            log "Validating discovered path directly: ${path}"
+            if validate_restart_files "${path}"; then
+                log "Selected cycle ${cycle} from discovered path ${path}"
                 echo "${cycle}"
                 return 0
             fi
-        # Reverse sort ensures the first valid match is the latest complete cycle.
+
+            log "Discovered path ${path} for cycle ${cycle} is not ready"
         done < <(find "${rrfspath}" -mindepth 2 -maxdepth 2 -type d -regextype posix-extended \
             -regex ".*/enkfrrfs\.[0-9]{8}/[0-9]{2}(_spinup)?" | sort -r)
         return 1
     fi
 
+    log "Last processed cycle: ${last_processed_cycle}"
     next_cycle=$(increment_cycle "${last_processed_cycle}") || return 1
+    log "Checking next sequential cycle: ${next_cycle}"
+
     if cycle_exists_and_has_restarts "${next_cycle}"; then
+        log "Next sequential cycle ${next_cycle} is ready"
         echo "${next_cycle}"
         return 0
     fi
+
+    log "Next sequential cycle ${next_cycle} is not ready"
     return 1
 }
 
