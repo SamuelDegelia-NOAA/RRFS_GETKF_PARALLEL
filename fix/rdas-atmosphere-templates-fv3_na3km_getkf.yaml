@@ -174,28 +174,29 @@ atmosphere_forecast_timestep: PT1H
 max_pool_size: 80
 write_multiple_files: false
 observations:
+
 # Upper-air conventional
-- adpupa_airTemperature_120
-- adpupa_airTemperature_132
-- adpupa_specificHumidity_120
-- adpupa_specificHumidity_132
-- adpupa_stationPressure_120
-- adpupa_winds_220
-- adpupa_winds_232
+#- adpupa_airTemperature_120
+#- adpupa_airTemperature_132
+#- adpupa_specificHumidity_120
+#- adpupa_specificHumidity_132
+#- adpupa_stationPressure_120
+#- adpupa_winds_220
+#- adpupa_winds_232
 
 - aircar_airTemperature_133
 - aircar_specificHumidity_133
 - aircar_winds_233
 
-- aircft_airTemperature_130
-- aircft_airTemperature_131
-- aircft_airTemperature_134
-- aircft_airTemperature_135
-- aircft_specificHumidity_134
-- aircft_winds_230
-- aircft_winds_231
-- aircft_winds_234
-- aircft_winds_235
+#- aircft_airTemperature_130
+#- aircft_airTemperature_131
+#- aircft_airTemperature_134
+#- aircft_airTemperature_135
+#- aircft_specificHumidity_134
+#- aircft_winds_230
+#- aircft_winds_231
+#- aircft_winds_234
+#- aircft_winds_235
 
 #- proflr_winds_227
 #- vadwnd_winds_224
