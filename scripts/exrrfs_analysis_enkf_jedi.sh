@@ -284,7 +284,7 @@ cp "${jedi_exec}" "${anldir}/${pgm}"
 
 ${APRUN} ./$pgm jedienkf.yaml >>$pgmout 2>errfile
 export err=$?; err_chk
-#cp $pgmout ${COMOUT}/rrfs.t${HH}z.jediout_observer.tm00
+cp $pgmout ${COMOUT}/rrfs.${YYYYMMDDHH}.jediout.tm00
 #cp ${JCB_CONFIG_ENKF_OBSERVER} ${COMOUT}
 #cp jedienkf_observer.yaml ${COMOUT}/jedienkf_observer.yaml
 mv errfile errfile_jedi_enkf

@@ -133,6 +133,7 @@ anldir='${anldir}'
 verifdir='${verifdir}'
 getkfyaml='${getkfyaml}'
 fixsimple='${fixsimple}'
+COMOUT='${currdir}/logs'
 EOF
 
 if [ -d ${bufrdir} ]; then
