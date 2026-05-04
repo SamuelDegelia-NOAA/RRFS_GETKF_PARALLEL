@@ -37,6 +37,17 @@ required_suffixes=(
     "sfc_data.nc"
 )
 
+declare -A file_size_thresholds=(
+    ["coupler.res"]=300
+    ["fv_core.res.nc"]=20852
+    ["fv_core.res.tile1.nc"]=22227756443
+    ["fv_diag.res.tile1.nc"]=85367256
+    ["fv_srf_wnd.res.tile1.nc"]=85367256
+    ["fv_tracer.res.tile1.nc"]=47139539099
+    ["phy_data.nc"]=45603871429
+    ["sfc_data.nc"]=10964019255
+)
+
 log() {
     echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] $*" | tee -a "${status_file}"
 }
@@ -59,10 +70,20 @@ lock_is_active() {
 
 parse_cycle_from_path() {
     local path="$1"
-    if [[ "${path}" =~ enkfrrfs\.([0-9]{8})/([0-9]{2})$ ]]; then
+    if [[ "${path}" =~ enkfrrfs\.([0-9]{8})/([0-9]{2})(_spinup)?$ ]]; then
         echo "${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
     else
         return 1
+    fi
+}
+
+get_cycle_dir_name() {
+    local cycle="$1"
+    local hh="${cycle:8:2}"
+    if [[ "${hh}" == "07" || "${hh}" == "19" ]]; then
+        echo "${hh}_spinup"
+    else
+        echo "${hh}"
     fi
 }
 
@@ -88,7 +109,9 @@ increment_cycle() {
 
 cycle_exists_and_has_restarts() {
     local cycle="$1"
-    local enspath="${rrfspath}/enkfrrfs.${cycle:0:8}/${cycle:8:2}"
+    local cycle_dir
+    cycle_dir=$(get_cycle_dir_name "${cycle}")
+    local enspath="${rrfspath}/enkfrrfs.${cycle:0:8}/${cycle_dir}"
     [[ -d "${enspath}" ]] || return 1
     validate_restart_files "${enspath}" >/dev/null
 }
@@ -106,7 +129,7 @@ get_next_cycle_to_process() {
             fi
         # Reverse sort ensures the first valid match is the latest complete cycle.
         done < <(find "${rrfspath}" -mindepth 2 -maxdepth 2 -type d -regextype posix-extended \
-            -regex ".*/enkfrrfs\.[0-9]{8}/[0-9]{2}" | sort -r)
+            -regex ".*/enkfrrfs\.[0-9]{8}/[0-9]{2}(_spinup)?" | sort -r)
         return 1
     fi
 
@@ -124,6 +147,8 @@ validate_restart_files() {
     local restart_dir
     local suffix
     local file
+    local actual_size
+    local min_size
     local missing=0
 
     if ! compute_valid_cycle_from_enspath "${enspath}"; then
@@ -146,6 +171,18 @@ validate_restart_files() {
             if [[ ! -f "${file}" ]]; then
                 log "MISSING: ${file}"
                 missing=1
+            else
+                min_size="${file_size_thresholds[${suffix}]}"
+                if [[ -n "${min_size}" ]]; then
+                    actual_size=$(stat -c%s "${file}" 2>/dev/null || stat -f%z "${file}" 2>/dev/null)
+                    if [[ -z "${actual_size}" ]]; then
+                        log "ERROR: Unable to determine file size for ${file}"
+                        missing=1
+                    elif [[ "${actual_size}" -lt "${min_size}" ]]; then
+                        log "UNDERSIZED: ${file} (${actual_size} < ${min_size})"
+                        missing=1
+                    fi
+                fi
             fi
         done
     done
@@ -194,7 +231,7 @@ if [[ -z "${next_cycle}" ]]; then
     log "No new cycles with complete restart files found."
     exit 0
 fi
-next_enspath="${rrfspath}/enkfrrfs.${next_cycle:0:8}/${next_cycle:8:2}"
+next_enspath="${rrfspath}/enkfrrfs.${next_cycle:0:8}/$(get_cycle_dir_name "${next_cycle}")"
 log "Found next cycle to process: ${next_cycle} (${next_enspath})"
 
 if ! validate_restart_files "${next_enspath}"; then
