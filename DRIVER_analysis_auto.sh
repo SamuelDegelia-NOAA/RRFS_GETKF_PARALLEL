@@ -77,13 +77,16 @@ parse_cycle_from_path() {
     fi
 }
 
-get_cycle_dir_name() {
+resolve_cycle_enspath() {
     local cycle="$1"
     local hh="${cycle:8:2}"
-    if [[ "${hh}" == "07" || "${hh}" == "19" ]]; then
-        echo "${hh}_spinup"
+    local base="${rrfspath}/enkfrrfs.${cycle:0:8}"
+    if [[ -d "${base}/${hh}" ]]; then
+        echo "${base}/${hh}"
+    elif [[ -d "${base}/${hh}_spinup" ]]; then
+        echo "${base}/${hh}_spinup"
     else
-        echo "${hh}"
+        return 1
     fi
 }
 
@@ -109,10 +112,8 @@ increment_cycle() {
 
 cycle_exists_and_has_restarts() {
     local cycle="$1"
-    local cycle_dir
-    cycle_dir=$(get_cycle_dir_name "${cycle}")
-    local enspath="${rrfspath}/enkfrrfs.${cycle:0:8}/${cycle_dir}"
-    [[ -d "${enspath}" ]] || return 1
+    local enspath
+    enspath=$(resolve_cycle_enspath "${cycle}") || return 1
     validate_restart_files "${enspath}" >/dev/null
 }
 
@@ -231,7 +232,10 @@ if [[ -z "${next_cycle}" ]]; then
     log "No new cycles with complete restart files found."
     exit 0
 fi
-next_enspath="${rrfspath}/enkfrrfs.${next_cycle:0:8}/$(get_cycle_dir_name "${next_cycle}")"
+if ! next_enspath=$(resolve_cycle_enspath "${next_cycle}"); then
+    log "ERROR: Cannot resolve enspath for cycle ${next_cycle}"
+    exit 1
+fi
 log "Found next cycle to process: ${next_cycle} (${next_enspath})"
 
 if ! validate_restart_files "${next_enspath}"; then

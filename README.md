@@ -17,6 +17,10 @@ Or it can be automated to run on the latest ensemble data available on Cactus:
 
 `*/5 * * * * /path/to/RRFS_GETKF_PARALLEL/DRIVER_analysis_auto.sh`
 
+The automated driver supports both regular cycle directories (`HH`) and spinup cycle directories
+(`HH_spinup`, e.g. `07_spinup`, `19_spinup`). It resolves the actual directory by checking the
+filesystem, so both forms work transparently.
+
 The automated driver tracks processed cycles in:
 
 `~/.enspath_cycle_history.txt`

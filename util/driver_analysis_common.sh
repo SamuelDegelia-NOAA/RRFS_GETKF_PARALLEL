@@ -2,7 +2,8 @@
 
 compute_valid_cycle_from_enspath() {
     local enspath="$1"
-    local hh="${enspath##*/}"
+    local hh_raw="${enspath##*/}"
+    local hh="${hh_raw%%_*}"
     local tmp="${enspath%/*}"
     local yyyymmdd="${tmp##*.}"
     local cycle_epoch
