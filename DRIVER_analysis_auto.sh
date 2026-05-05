@@ -13,10 +13,18 @@ ensemble_size=${ENSEMBLE_SIZE:-30}
 
 source "${script_dir}/util/driver_analysis_common.sh"
 
+cleanup_old_status_files() {
+    find "${baserundir}" -maxdepth 1 -type f -name 'monitor_enspath_*.status' -mmin +60 \
+        -exec rm -f {} \; 2>/dev/null
+}
+
 if ! mkdir -p "${baserundir}"; then
     echo "ERROR: Unable to create baserundir: ${baserundir}" >&2
     exit 1
 fi
+
+cleanup_old_status_files
+
 if ! touch "${cycle_history}"; then
     echo "ERROR: Unable to initialize cycle history file: ${cycle_history}" >&2
     exit 1
