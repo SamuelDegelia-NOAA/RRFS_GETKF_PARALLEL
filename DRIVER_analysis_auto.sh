@@ -90,88 +90,47 @@ resolve_cycle_enspath() {
     fi
 }
 
-get_last_processed_cycle() {
-    awk 'BEGIN{last=""} $2=="SUCCESS"{last=$1} END{if(last!="") print last; else exit 1}' "${cycle_history}"
-}
-
-increment_cycle() {
-    local cycle="$1"
-    local cycle_epoch
-    local timestamp
-    if ! [[ "${cycle}" =~ ^[0-9]{10}$ ]]; then
-        echo "ERROR: invalid cycle format for increment: ${cycle}" >&2
-        return 1
-    fi
-    cycle_epoch=$(date -u -d "${cycle:0:4}-${cycle:4:2}-${cycle:6:2} ${cycle:8:2}:00:00" +%s) || return 1
-    timestamp=$(date -u -d "@$((cycle_epoch + 3600))" +%Y%m%d%H) || {
-        echo "ERROR: unable to increment cycle: ${cycle}" >&2
-        return 1
-    }
-    echo "${timestamp}"
-}
-
-cycle_exists_and_has_restarts() {
-    local cycle="$1"
-    local enspath
-
-    log "Checking cycle ${cycle}"
-    if ! enspath=$(resolve_cycle_enspath "${cycle}"); then
-        log "Cycle ${cycle} has no matching directory"
-        return 1
-    fi
-
-    log "Resolved cycle ${cycle} to ${enspath}"
-    log "Validating restart files in ${enspath}"
-    if validate_restart_files "${enspath}"; then
-        log "Cycle ${cycle} passed validation"
-        return 0
-    else
-        log "Cycle ${cycle} failed validation"
-        return 1
-    fi
+get_successful_cycles() {
+    # Outputs all cycles marked SUCCESS in the history file, one per line
+    awk '$2=="SUCCESS"{print $1}' "${cycle_history}"
 }
 
 get_next_cycle_to_process() {
-    local last_processed_cycle
-    local next_cycle
     local cycle
     local path
+    local -A success_set
 
-    if ! last_processed_cycle=$(get_last_processed_cycle); then
-        log "No previous successful cycle found in ${cycle_history}; scanning filesystem for latest complete cycle"
-        while read -r path; do
-            log "Considering path: ${path}"
+    # Build a lookup set of all cycles already successfully processed
+    while read -r cycle; do
+        success_set["${cycle}"]=1
+    done < <(get_successful_cycles)
 
-            if ! cycle=$(parse_cycle_from_path "${path}"); then
-                log "Could not parse cycle from ${path}"
-                continue
-            fi
+    log "Successful cycles in history (${#success_set[@]}): ${!success_set[*]:-none}"
 
-            log "Parsed cycle ${cycle} from ${path}"
-            log "Validating discovered path directly: ${path}"
-            if validate_restart_files "${path}"; then
-                log "Selected cycle ${cycle} from discovered path ${path}"
-                echo "${cycle}"
-                return 0
-            fi
+    # Scan filesystem for available cycles, newest first, and select the
+    # first cycle that has not already succeeded and has valid restart files
+    while read -r path; do
+        if ! cycle=$(parse_cycle_from_path "${path}"); then
+            log "Could not parse cycle from ${path}"
+            continue
+        fi
 
-            log "Discovered path ${path} for cycle ${cycle} is not ready"
-        done < <(find "${rrfspath}" -mindepth 2 -maxdepth 2 -type d -regextype posix-extended \
-            -regex ".*/enkfrrfs\.[0-9]{8}/[0-9]{2}(_spinup)?" | sort -r)
-        return 1
-    fi
+        if [[ -v "success_set[${cycle}]" ]]; then
+            log "Skipping cycle ${cycle}: already marked SUCCESS"
+            continue
+        fi
 
-    log "Last processed cycle: ${last_processed_cycle}"
-    next_cycle=$(increment_cycle "${last_processed_cycle}") || return 1
-    log "Checking next sequential cycle: ${next_cycle}"
+        log "Evaluating candidate cycle ${cycle} (${path})"
+        if validate_restart_files "${path}"; then
+            log "Selected cycle ${cycle} from ${path}"
+            echo "${cycle}"
+            return 0
+        fi
 
-    if cycle_exists_and_has_restarts "${next_cycle}"; then
-        log "Next sequential cycle ${next_cycle} is ready"
-        echo "${next_cycle}"
-        return 0
-    fi
+        log "Cycle ${cycle} (${path}) is not ready; continuing search"
+    done < <(find "${rrfspath}" -mindepth 2 -maxdepth 2 -type d -regextype posix-extended \
+        -regex ".*/enkfrrfs\.[0-9]{8}/[0-9]{2}(_spinup)?" | sort -r)
 
-    log "Next sequential cycle ${next_cycle} is not ready"
     return 1
 }
 
