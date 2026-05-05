@@ -48,7 +48,7 @@ def apply_increments(bkg_path, inc_path, out_path, var_names):
     inc = xr.open_dataset(inc_path, chunks="auto")
 
     # Start with a deep copy of the background dataset
-    out = bkg.copy(deep=True)
+    out = bkg.copy(deep=False)
 
     for var in var_names:
         if var in bkg and var in inc:
