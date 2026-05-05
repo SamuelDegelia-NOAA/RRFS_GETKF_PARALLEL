@@ -764,7 +764,8 @@ else
 #  sed -e 's/   asm all     /pw asm 900 0000/; s/   rej all     /pw rej 900 0000/; s/   mon all     /pw mon 900 0000/' fort.205 > fit_pw1
 #  sed -e 's/   asm all     /rw asm 900 0000/; s/   rej all     /rw rej 900 0000/; s/   mon all     /rw mon 900 0000/' fort.209 > fit_rw1
 
-  cat fit_p1 fit_w1 fit_t1 fit_q1 fit_pw1 fit_rad1 fit_rw1 > ${COMOUT}/rrfs.t${HH}z.fits.tm00
+  #cat fit_p1 fit_w1 fit_t1 fit_q1 fit_pw1 fit_rad1 fit_rw1 > ${COMOUT}/rrfs.t${HH}z.fits.tm00
+  cat fit_p1 fit_w1 fit_t1 fit_q1 > ${COMOUT}/rrfs.t${HH}z.fits.tm00
   #cat fort.208 fort.210 fort.211 fort.212 fort.213 fort.220 > ${COMOUT}/rrfs.t${HH}z.fits2.tm00
   cat fort.208 fort.213 fort.220 > ${COMOUT}/rrfs.t${HH}z.fits2.tm00
   #cat fort.238 > ${COMOUT}/rrfs.t${HH}z.fits3.tm00
