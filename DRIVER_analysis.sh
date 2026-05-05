@@ -265,4 +265,5 @@ else
 
 fi
 
+rm ${envfile}
 exit 0

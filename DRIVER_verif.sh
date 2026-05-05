@@ -144,5 +144,5 @@ while qstat_output=$(qstat "${job4}" 2>/dev/null || true); do
   sleep 10
 done
 
-
+rm ${envfile}
 exit 0
