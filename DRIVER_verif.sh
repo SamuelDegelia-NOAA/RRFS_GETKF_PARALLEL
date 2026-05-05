@@ -85,12 +85,14 @@ fixsimple=${currdir}/fix
 if [ ! -d ./logs ]; then
   mkdir -p logs
 fi
+mkdir -p "${baserundir}"
 
 # Use cycle-specific log names from the start so concurrent cycles don't collide
 VERIF_LOG="logs/verif_${YYYYMMDD}${HH}.log"
 
-# Export the variables we will need in other tasks
-envfile=getkf_run.env
+# Export the variables we will need in other tasks.
+# Use a cycle-unique absolute path so concurrent cycles cannot overwrite each other.
+envfile="${baserundir}/getkf_run_${YYYYMMDD}${HH}.env"
 cat > ${envfile} << EOF
 RDASApp='${RDASApp}'
 rrfsworkflow='${rrfsworkflow}'
