@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from netCDF4 import Dataset
 
 # Settings
-cycletime = '2026050419'  # YYYYMMDDHH
+cycletime = '2026050515'  # YYYYMMDDHH
 jedibase = '/lfs/h2/emc/stmp/samuel.degelia/GETKF_PARALLEL'
 gsibase = '/lfs/h1/ops/para/com/rrfs/v1.0'
 diaglist = [
@@ -110,6 +110,11 @@ def pair_observations(gsi_file, jedi_file, is_wind=False):
     """
     gsi_keys, gsi_hofx, _, _, _, _, gsi_prs = extract_diag_data(gsi_file, is_wind=is_wind)
     jedi_keys, jedi_hofx, _, _, _, _, _ = extract_diag_data(jedi_file, is_wind=is_wind)
+
+    # Convert from kg/kg to g/kg
+    if 'diag_conv_q' in gsi_file:
+        gsi_hofx = gsi_hofx * 1000.0
+        jedi_hofx = jedi_hofx * 1000.0
 
     gsi_map = {}
     for i, key in enumerate(gsi_keys):
