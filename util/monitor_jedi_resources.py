@@ -94,16 +94,18 @@ while cycleobj <= lastobj:
 # ---------------------------------------------------------------------------
 def _save_plot(fig, filename):
     path = os.path.join(outdir, filename)
-    fig.savefig(path, bbox_inches='tight')
+    fig.savefig(path, bbox_inches='tight', dpi=300)
     print(f'Saved: {path}')
 
 
-def _make_timeseries_plot(cycles, values, ylabel, title, filename, color='steelblue'):
+def _make_timeseries_plot(cycles, values, ylabel, title, filename, color='steelblue', yrange = None):
     fig, ax = plt.subplots(figsize=(12, 4))
     ax.plot(cycles, values, marker='o', color=color, linewidth=1.5)
     ax.set_xlabel('Cycle (UTC)')
     ax.set_ylabel(ylabel)
     ax.set_title(title)
+    if yrange:
+      ax.set_ylim(yrange[0], yrange[1])
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d %HZ'))
     ax.xaxis.set_major_locator(mdates.AutoDateLocator())
     plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
@@ -122,6 +124,7 @@ _make_timeseries_plot(
     title    = 'GETKF Runtime per Cycle',
     filename = 'getkf_runtime.png',
     color    = 'steelblue',
+    yrange   = [0, 3000]
 )
 
 _make_timeseries_plot(
@@ -130,6 +133,7 @@ _make_timeseries_plot(
     title    = 'GETKF Total Memory Usage per Cycle',
     filename = 'getkf_memory.png',
     color    = 'darkorange',
+    yrange   = [0, 25000]
 )
 
 _make_timeseries_plot(
