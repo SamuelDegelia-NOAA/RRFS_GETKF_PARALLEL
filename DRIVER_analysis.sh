@@ -10,6 +10,9 @@
 ### Settings ###
 ################
 
+# Also do verification?
+doverif="FALSE"
+
 # Paths to local installs
 RDASApp=/lfs/h2/emc/da/noscrub/samuel.degelia/RDASApp_redist_iodafix/RDASApp
 rrfsworkflow=/lfs/h2/emc/da/noscrub/samuel.degelia/rrfs-workflow_na3km/rrfs-workflow
@@ -154,14 +157,20 @@ rm -f bufr.log mrms.log getkf.log verif.log
 mkdir -p ${bufrdir}
 mkdir -p ${mrmsdir}
 mkdir -p ${anldir}
-mkdir -p ${verifdir}
+if [ ${doverif} == "TRUE" ]; then
+  mkdir -p ${verifdir}
+fi
 cp ${envfile} ${bufrdir}
 cp ${envfile} ${mrmsdir}
 cp ${envfile} ${anldir}
-cp ${envfile} ${verifdir}
+if [ ${doverif} == "TRUE" ]; then
+  cp ${envfile} ${verifdir}
+fi
 cp ./util/prep_ioda_cast.sh ${bufrdir}
 cp ./util/prep_phydata_dbz.py ${anldir}
-cp ./util/apply_jedi_incs.py ${verifdir}
+if [ ${doverif} == "TRUE" ]; then
+  cp ./util/apply_jedi_incs.py ${verifdir}
+fi
 
 # Create radar observations
 job1=$(bash "${submit}" \
@@ -205,7 +214,9 @@ job3=$(bash "${submit}" \
     "${script_dir}/scripts/exrrfs_analysis_enkf_jedi.sh")
 
 # Run the verification after the GETKF job completes successfully
-job4=$(bash "${submit}" \
+if [ ${doverif} == "TRUE" ]; then
+
+  job4=$(bash "${submit}" \
     -N "${VERIF_JOB_NAME}" \
     -A "${PBS_ACCOUNT}" \
     -q "${PBS_QUEUE}" \
@@ -218,10 +229,10 @@ job4=$(bash "${submit}" \
     -W "depend=afterok:${job3}" \
     "${script_dir}/scripts/exrrfs_verif_gsi.sh")
 
-echo "Submitted jobs: radar=${job1} bufr=${job2} getkf=${job3} verif=${job4}"
+  echo "Submitted jobs: radar=${job1} bufr=${job2} getkf=${job3} verif=${job4}"
 
-# Wait for all jobs to complete
-while qstat_output=$(qstat "${job1}" "${job2}" "${job3}" "${job4}" 2>/dev/null || true); do
+  # Wait for all jobs to complete
+  while qstat_output=$(qstat "${job1}" "${job2}" "${job3}" "${job4}" 2>/dev/null || true); do
     if [[ "${qstat_output}" != *"${job1}"* && \
           "${qstat_output}" != *"${job2}"* && \
           "${qstat_output}" != *"${job3}"* && \
@@ -229,7 +240,23 @@ while qstat_output=$(qstat "${job1}" "${job2}" "${job3}" "${job4}" 2>/dev/null |
         break
     fi
     sleep 10
-done
+  done
+
+else
+
+  echo "Submitted jobs: radar=${job1} bufr=${job2} getkf=${job3}"
+
+  # Wait for all jobs to complete
+  while qstat_output=$(qstat "${job1}" "${job2}" "${job3}" 2>/dev/null || true); do
+    if [[ "${qstat_output}" != *"${job1}"* && \
+          "${qstat_output}" != *"${job2}"* && \
+          "${qstat_output}" != *"${job3}"* ]]; then
+        break
+    fi
+    sleep 10
+  done
+
+fi
 
 if [ -f bufr.log ]; then
     mv bufr.log logs/bufr_${YYYYMMDD}${HH}.log
@@ -240,8 +267,10 @@ fi
 if [ -f getkf.log ]; then
     mv getkf.log logs/getkf_${YYYYMMDD}${HH}.log
 fi
-if [ -f verif.log ]; then
-    mv verif.log logs/verif_${YYYYMMDD}${HH}.log
+if [ ${doverif} == "TRUE" ]; then
+  if [ -f verif.log ]; then
+      mv verif.log logs/verif_${YYYYMMDD}${HH}.log
+  fi
 fi
 
 exit 0

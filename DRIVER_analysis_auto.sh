@@ -49,7 +49,9 @@ declare -A file_size_thresholds=(
 )
 
 log() {
-    echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] $*" | tee -a "${status_file}" >&2
+    local msg="[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] $*"
+    echo "${msg}" >&2
+    echo "${msg}" >> "${status_file}"
 }
 
 release_lock() {
@@ -105,7 +107,11 @@ get_next_cycle_to_process() {
         success_set["${cycle}"]=1
     done < <(get_successful_cycles)
 
-    log "Successful cycles in history (${#success_set[@]}): ${!success_set[*]:-none}"
+    if [[ ${#success_set[@]} -gt 0 ]]; then
+        log "Successful cycles in history (${#success_set[@]}): ${!success_set[*]}"
+    else
+        log "Successful cycles in history (0): none"
+    fi
 
     # Scan filesystem for available cycles, newest first, and select the
     # first cycle that has not already succeeded and has valid restart files
@@ -115,7 +121,7 @@ get_next_cycle_to_process() {
             continue
         fi
 
-        if [[ -v "success_set[${cycle}]" ]]; then
+        if [[ -n "${success_set[${cycle}]:-}" ]]; then
             log "Skipping cycle ${cycle}: already marked SUCCESS"
             continue
         fi
