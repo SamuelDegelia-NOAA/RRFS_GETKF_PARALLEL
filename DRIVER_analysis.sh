@@ -116,6 +116,12 @@ if [ ! -d ./logs ]; then
   mkdir -p logs
 fi
 
+# Use cycle-specific log names from the start so concurrent cycles don't collide
+RADAR_LOG="logs/mrms_${YYYYMMDD}${HH}.log"
+BUFR_LOG="logs/bufr_${YYYYMMDD}${HH}.log"
+GETKF_LOG="logs/getkf_${YYYYMMDD}${HH}.log"
+VERIF_LOG="logs/verif_${YYYYMMDD}${HH}.log"
+
 # Export the variables we will need in other tasks
 envfile=getkf_run.env
 cat > ${envfile} << EOF
@@ -153,7 +159,6 @@ fi
 if [ -d ${verifdir} ]; then
   rm -rf ${verifdir}
 fi
-rm -f bufr.log mrms.log getkf.log verif.log
 mkdir -p ${bufrdir}
 mkdir -p ${mrmsdir}
 mkdir -p ${anldir}
@@ -256,21 +261,6 @@ else
     sleep 10
   done
 
-fi
-
-if [ -f bufr.log ]; then
-    mv bufr.log logs/bufr_${YYYYMMDD}${HH}.log
-fi
-if [ -f mrms.log ]; then
-    mv mrms.log logs/mrms_${YYYYMMDD}${HH}.log
-fi
-if [ -f getkf.log ]; then
-    mv getkf.log logs/getkf_${YYYYMMDD}${HH}.log
-fi
-if [ ${doverif} == "TRUE" ]; then
-  if [ -f verif.log ]; then
-      mv verif.log logs/verif_${YYYYMMDD}${HH}.log
-  fi
 fi
 
 exit 0
