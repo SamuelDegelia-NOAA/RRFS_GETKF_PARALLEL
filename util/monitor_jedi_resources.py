@@ -90,7 +90,7 @@ while cycleobj <= lastobj:
     cycleobj += timedelta(hours=1)
 
 # ---------------------------------------------------------------------------
-# Plotting helper
+# Plotting helpers
 # ---------------------------------------------------------------------------
 def _save_plot(fig, filename):
     path = os.path.join(outdir, filename)
@@ -98,18 +98,56 @@ def _save_plot(fig, filename):
     print(f'Saved: {path}')
 
 
-def _make_timeseries_plot(cycles, values, ylabel, title, filename, color='steelblue', yrange = None):
-    fig, ax = plt.subplots(figsize=(12, 4))
-    ax.plot(cycles, values, marker='o', color=color, linewidth=1.5)
+def _format_time_axis(ax):
     ax.set_xlabel('Cycle (UTC)')
-    ax.set_ylabel(ylabel)
-    ax.set_title(title)
-    if yrange:
-      ax.set_ylim(yrange[0], yrange[1])
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d %HZ'))
     ax.xaxis.set_major_locator(mdates.AutoDateLocator())
     plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
     ax.grid(True, linestyle='--', alpha=0.5)
+
+
+def _make_dual_axis_plot(
+    cycles,
+    left_values,
+    right_values,
+    left_ylabel,
+    right_ylabel,
+    title,
+    filename,
+    left_color='steelblue',
+    right_color='darkorange',
+    left_yrange=None,
+    right_yrange=None,
+):
+    fig, ax_left = plt.subplots(figsize=(12, 4))
+    ax_right = ax_left.twinx()
+
+    line_left, = ax_left.plot(
+        cycles, left_values,
+        marker='o', color=left_color, linewidth=1.5, label=left_ylabel
+    )
+    line_right, = ax_right.plot(
+        cycles, right_values,
+        marker='o', color=right_color, linewidth=1.5, label=right_ylabel
+    )
+
+    ax_left.set_ylabel(left_ylabel, color=left_color)
+    ax_right.set_ylabel(right_ylabel, color=right_color)
+    ax_left.tick_params(axis='y', labelcolor=left_color)
+    ax_right.tick_params(axis='y', labelcolor=right_color)
+    ax_left.set_title(title)
+
+    if left_yrange:
+        ax_left.set_ylim(left_yrange[0], left_yrange[1])
+    if right_yrange:
+        ax_right.set_ylim(right_yrange[0], right_yrange[1])
+
+    _format_time_axis(ax_left)
+
+    lines = [line_left, line_right]
+    labels = [line.get_label() for line in lines]
+    ax_left.legend(lines, labels, loc='upper left')
+
     fig.tight_layout()
     _save_plot(fig, filename)
     plt.show()
@@ -118,36 +156,28 @@ def _make_timeseries_plot(cycles, values, ylabel, title, filename, color='steelb
 # ---------------------------------------------------------------------------
 # Create plots
 # ---------------------------------------------------------------------------
-_make_timeseries_plot(
-    cycles, runtime,
-    ylabel   = 'Runtime (seconds)',
-    title    = 'GETKF Runtime per Cycle',
-    filename = 'getkf_runtime.png',
-    color    = 'steelblue',
-    yrange   = [0, 3000]
+_make_dual_axis_plot(
+    cycles,
+    runtime,
+    memory,
+    left_ylabel='Runtime (seconds)',
+    right_ylabel='Total Memory (GB)',
+    title='GETKF Runtime and Total Memory Usage per Cycle',
+    filename='getkf_runtime_memory.png',
+    left_color='steelblue',
+    right_color='darkorange',
+    left_yrange=[0, 3000],
+    right_yrange=[0, 25000],
 )
 
-_make_timeseries_plot(
-    cycles, memory,
-    ylabel   = 'Total Memory (GB)',
-    title    = 'GETKF Total Memory Usage per Cycle',
-    filename = 'getkf_memory.png',
-    color    = 'darkorange',
-    yrange   = [0, 25000]
-)
-
-_make_timeseries_plot(
-    cycles, radar_obs,
-    ylabel   = 'Radar Observations Assimilated',
-    title    = 'GETKF Radar (refl10cm equivalentReflectivityFactor) Obs per Cycle',
-    filename = 'getkf_radar_obs.png',
-    color    = 'firebrick',
-)
-
-_make_timeseries_plot(
-    cycles, conv_obs,
-    ylabel   = 'Conventional Observations Assimilated',
-    title    = 'GETKF Conventional Obs per Cycle',
-    filename = 'getkf_conv_obs.png',
-    color    = 'seagreen',
+_make_dual_axis_plot(
+    cycles,
+    radar_obs,
+    conv_obs,
+    left_ylabel='Radar Observations Assimilated',
+    right_ylabel='Conventional Observations Assimilated',
+    title='GETKF Radar and Conventional Obs per Cycle',
+    filename='getkf_obs_counts.png',
+    left_color='firebrick',
+    right_color='seagreen',
 )
