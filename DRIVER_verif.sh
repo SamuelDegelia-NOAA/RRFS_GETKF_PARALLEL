@@ -92,7 +92,7 @@ VERIF_LOG="logs/verif_${YYYYMMDD}${HH}.log"
 
 # Export the variables we will need in other tasks.
 # Use a cycle-unique absolute path so concurrent cycles cannot overwrite each other.
-envfile="${baserundir}/getkf_run_${YYYYMMDD}${HH}.env"
+envfile="${baserundir}/verif_run_${YYYYMMDD}${HH}.env"
 cat > ${envfile} << EOF
 RDASApp='${RDASApp}'
 rrfsworkflow='${rrfsworkflow}'

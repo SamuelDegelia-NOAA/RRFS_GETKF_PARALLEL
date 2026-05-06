@@ -9,8 +9,8 @@ from datetime import datetime, timedelta
 # Settings
 # ---------------------------------------------------------------------------
 logdir = '/lfs/h2/emc/da/noscrub/samuel.degelia/parallel_getkf/logs'
-start_cycle = '2026050503'
-end_cycle   = '2026050517'
+start_cycle = '2026050406'
+end_cycle   = '2026050613'
 outdir      = '.'   # directory where plots are saved
 
 # ---------------------------------------------------------------------------

@@ -56,7 +56,7 @@ declare -A file_size_thresholds=(
     ["fv_diag.res.tile1.nc"]=85367256
     ["fv_srf_wnd.res.tile1.nc"]=85367256
     ["fv_tracer.res.tile1.nc"]=47139539099
-    ["phy_data.nc"]=45603871429
+    ["phy_data.nc"]=42830964708
     ["sfc_data.nc"]=10964019255
 )
 
