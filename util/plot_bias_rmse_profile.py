@@ -1,6 +1,6 @@
 import os
 import subprocess
-from subprocess import CalledProcessError
+from subprocess import CalledProcessError, TimeoutExpired
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -26,6 +26,7 @@ DO_PAIR = True
 PRESSURE_BIN_WIDTH_HPA = 100.0
 PRESSURE_MIN_HPA = 0.0
 PRESSURE_MAX_HPA = 1100.0
+GUNZIP_TIMEOUT_SECONDS = 300
 
 PLOT_NAMES = {
     'diag_conv_t': 'Temperature',
@@ -153,6 +154,11 @@ def pair_omf(gsi_data, jedi_data):
 
 def ensure_unzipped_diag(diag_file_gz):
     """Ensure a .nc4 diag exists by unzipping in place when needed, while keeping .gz."""
+    archive_root = os.path.abspath(archivedir) + os.sep
+    if not os.path.abspath(diag_file_gz).startswith(archive_root):
+        print(f'Unexpected diag file path outside archive root: {diag_file_gz}')
+        return None
+
     if not diag_file_gz.endswith('.gz'):
         print(f'Unsupported diag format (expected .gz): {diag_file_gz}')
         return None
@@ -167,8 +173,11 @@ def ensure_unzipped_diag(diag_file_gz):
                 check=True,
                 capture_output=True,
                 text=True,
-                timeout=300,
+                timeout=GUNZIP_TIMEOUT_SECONDS,
             )
+        except TimeoutExpired:
+            print(f'gunzip timed out after {GUNZIP_TIMEOUT_SECONDS}s: {diag_file_gz}')
+            return None
         except CalledProcessError as exc:
             print(f'gunzip failed for {diag_file_gz} (returncode={exc.returncode})')
             if exc.stdout:
