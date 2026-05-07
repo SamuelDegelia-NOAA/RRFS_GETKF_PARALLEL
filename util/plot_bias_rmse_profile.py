@@ -260,8 +260,6 @@ def main():
     workdir = os.path.join(outdir, f'work_{firstcycle}_{lastcycle}')
     gsi_local_dir = os.path.join(workdir, 'gsi')
     jedi_local_dir = os.path.join(workdir, 'jedi')
-    os.makedirs(gsi_local_dir, exist_ok=True)
-    os.makedirs(jedi_local_dir, exist_ok=True)
 
     cycles = enumerate_cycles(firstcycle, lastcycle)
     cycle_label = f'{firstcycle}-{lastcycle}'
