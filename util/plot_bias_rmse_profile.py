@@ -167,9 +167,12 @@ def ensure_unzipped_diag(diag_file_gz):
                 check=True,
                 capture_output=True,
                 text=True,
+                timeout=300,
             )
         except CalledProcessError as exc:
             print(f'gunzip failed for {diag_file_gz} (returncode={exc.returncode})')
+            if exc.stdout:
+                print(exc.stdout.strip())
             if exc.stderr:
                 print(exc.stderr.strip())
             return None
