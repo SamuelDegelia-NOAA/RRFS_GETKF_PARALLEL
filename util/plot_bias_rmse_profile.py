@@ -201,8 +201,10 @@ def ensure_unzipped_diag(diag_file_gz):
 def build_pressure_bins():
     """Construct pressure bins and bin centers."""
     half_width = 0.5 * PRESSURE_BIN_WIDTH_HPA
-    num_bins = int(PRESSURE_MAX_BIN_CENTER_HPA / PRESSURE_BIN_WIDTH_HPA)
-    centers = PRESSURE_BIN_WIDTH_HPA * np.arange(1, num_bins + 1, dtype=float)
+    num_bins = int((PRESSURE_MAX_BIN_CENTER_HPA - PRESSURE_BIN_WIDTH_HPA)
+                   / PRESSURE_BIN_WIDTH_HPA) + 1
+    centers = np.linspace(PRESSURE_BIN_WIDTH_HPA, PRESSURE_MAX_BIN_CENTER_HPA,
+                          num=num_bins, dtype=float)
     bins = []
     for i, center in enumerate(centers):
         low = center - half_width
