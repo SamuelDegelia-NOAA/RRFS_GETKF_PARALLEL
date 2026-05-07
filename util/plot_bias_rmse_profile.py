@@ -25,7 +25,7 @@ DO_PAIR = True
 PRESSURE_BIN_WIDTH_HPA = 50.0
 PRESSURE_MIN_HPA = 25.0
 PRESSURE_MAX_HPA = 1025.0
-PRESSURE_SURFACE_BIN_CENTER_HPA = PRESSURE_MAX_HPA - 0.5 * PRESSURE_BIN_WIDTH_HPA
+PRESSURE_MAX_BIN_CENTER_HPA = PRESSURE_MAX_HPA - 0.5 * PRESSURE_BIN_WIDTH_HPA
 GUNZIP_TIMEOUT_SECONDS = 300
 
 GSI_COLOR = 'red'
@@ -201,9 +201,8 @@ def ensure_unzipped_diag(diag_file_gz):
 def build_pressure_bins():
     """Construct pressure bins and bin centers."""
     half_width = 0.5 * PRESSURE_BIN_WIDTH_HPA
-    centers = np.arange(PRESSURE_BIN_WIDTH_HPA,
-                        PRESSURE_SURFACE_BIN_CENTER_HPA + PRESSURE_BIN_WIDTH_HPA,
-                        PRESSURE_BIN_WIDTH_HPA)
+    num_bins = int(round(PRESSURE_MAX_BIN_CENTER_HPA / PRESSURE_BIN_WIDTH_HPA))
+    centers = PRESSURE_BIN_WIDTH_HPA * np.arange(1, num_bins + 1, dtype=float)
     bins = []
     for i, center in enumerate(centers):
         low = center - half_width
@@ -244,11 +243,11 @@ def plot_stat_profile(gsi_bias, gsi_rmse, jedi_bias, jedi_rmse, centers,
     ax.plot(gsi_rmse, centers, color=GSI_COLOR, linestyle='-',
             marker='o', linewidth=1.8, label=f'GSI RMSE (N={np.sum(gsi_count)})')
     ax.plot(gsi_bias, centers, color=GSI_COLOR, linestyle='--',
-            marker='o', linewidth=1.8, label='GSI Bias')
+            marker='o', linewidth=1.8, label=f'GSI Bias (N={np.sum(gsi_count)})')
     ax.plot(jedi_rmse, centers, color=JEDI_COLOR, linestyle='-',
             marker='o', linewidth=1.8, label=f'JEDI RMSE (N={np.sum(jedi_count)})')
     ax.plot(jedi_bias, centers, color=JEDI_COLOR, linestyle='--',
-            marker='o', linewidth=1.8, label='JEDI Bias')
+            marker='o', linewidth=1.8, label=f'JEDI Bias (N={np.sum(jedi_count)})')
     ax.axvline(0.0, color='black', linewidth=1.0)
 
     ax.set_ylim(PRESSURE_MAX_HPA, PRESSURE_MIN_HPA)
