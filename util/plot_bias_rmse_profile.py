@@ -162,9 +162,16 @@ def ensure_unzipped_diag(diag_file_gz):
         if not os.path.exists(diag_file_gz):
             return None
         try:
-            subprocess.run(['gunzip', '-f', '-k', diag_file_gz], check=True)
+            subprocess.run(
+                ['gunzip', '-f', '-k', diag_file_gz],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
         except CalledProcessError as exc:
             print(f'gunzip failed for {diag_file_gz} (returncode={exc.returncode})')
+            if exc.stderr:
+                print(exc.stderr.strip())
             return None
         except Exception as exc:
             print(f'Failed to unzip diag file {diag_file_gz}: {exc}')
