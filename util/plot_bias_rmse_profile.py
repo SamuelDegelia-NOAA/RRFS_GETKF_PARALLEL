@@ -25,6 +25,7 @@ DO_PAIR = True
 PRESSURE_BIN_WIDTH_HPA = 50.0
 PRESSURE_MIN_HPA = 25.0
 PRESSURE_MAX_HPA = 1025.0
+PRESSURE_SURFACE_BIN_CENTER_HPA = PRESSURE_MAX_HPA - 0.5 * PRESSURE_BIN_WIDTH_HPA
 GUNZIP_TIMEOUT_SECONDS = 300
 
 GSI_COLOR = 'red'
@@ -200,15 +201,16 @@ def ensure_unzipped_diag(diag_file_gz):
 def build_pressure_bins():
     """Construct pressure bins and bin centers."""
     half_width = 0.5 * PRESSURE_BIN_WIDTH_HPA
-    centers = np.arange(PRESSURE_BIN_WIDTH_HPA, 1000.0 + PRESSURE_BIN_WIDTH_HPA,
+    centers = np.arange(PRESSURE_BIN_WIDTH_HPA,
+                        PRESSURE_SURFACE_BIN_CENTER_HPA + PRESSURE_BIN_WIDTH_HPA,
                         PRESSURE_BIN_WIDTH_HPA)
     bins = []
-    for center in centers:
+    for i, center in enumerate(centers):
         low = center - half_width
         high = center + half_width
-        if center == centers[0]:
+        if i == 0:
             low = 0.0
-        if center == centers[-1]:
+        if i == len(centers) - 1:
             high = np.inf
         bins.append((low, high))
     return bins, centers
