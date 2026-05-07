@@ -23,6 +23,7 @@ DO_PAIR = True
 
 # Pressure-bin settings (hPa)
 PRESSURE_BIN_WIDTH_HPA = 50.0
+PRESSURE_ABSOLUTE_MIN_HPA = 0.0
 PRESSURE_MIN_HPA = 25.0
 PRESSURE_MAX_HPA = 1025.0
 PRESSURE_MAX_BIN_CENTER_HPA = PRESSURE_MAX_HPA - 0.5 * PRESSURE_BIN_WIDTH_HPA
@@ -211,7 +212,7 @@ def build_pressure_bins():
         low = center - half_width
         high = center + half_width
         if i == 0:
-            low = 0.0
+            low = PRESSURE_ABSOLUTE_MIN_HPA
         if i == len(centers) - 1:
             high = np.inf
         bins.append((low, high))
