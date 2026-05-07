@@ -155,9 +155,9 @@ def stage_local_diag(diag_file_gz, local_subdir):
     """Copy and unzip a remote diag file to local working storage."""
     os.makedirs(local_subdir, exist_ok=True)
 
-    local_gz = os.path.join(local_subdir, os.path.basename(diag_file_gz))
-    if not local_gz.endswith('.gz'):
+    if not diag_file_gz.endswith('.gz'):
         return None
+    local_gz = os.path.join(local_subdir, os.path.basename(diag_file_gz))
     local_nc = local_gz.removesuffix('.gz')
 
     if not os.path.exists(local_nc):
