@@ -1,4 +1,6 @@
 import os
+import gzip
+import shutil
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -154,13 +156,17 @@ def stage_local_diag(diag_file_gz, local_subdir):
     os.makedirs(local_subdir, exist_ok=True)
 
     local_gz = os.path.join(local_subdir, os.path.basename(diag_file_gz))
-    local_nc = local_gz[:-3]
+    if not local_gz.endswith('.gz'):
+        return None
+    local_nc = local_gz.removesuffix('.gz')
 
     if not os.path.exists(local_nc):
         if not os.path.exists(diag_file_gz):
             return None
-        os.system(f'cp {diag_file_gz} {local_subdir}/')
-        os.system(f'gunzip -f {local_gz}')
+        shutil.copy2(diag_file_gz, local_gz)
+        with gzip.open(local_gz, 'rb') as f_in, open(local_nc, 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+        os.remove(local_gz)
 
     if not os.path.exists(local_nc):
         return None
