@@ -1,6 +1,7 @@
 import os
 import gzip
 import shutil
+from contextlib import suppress
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -170,7 +171,7 @@ def stage_local_diag(diag_file_gz, local_subdir):
                 shutil.copyfileobj(f_in, f_out)
         except Exception as exc:
             print(f'Failed to copy/unzip diag file {diag_file_gz}: {exc}')
-            if os.path.exists(local_nc):
+            with suppress(FileNotFoundError):
                 os.remove(local_nc)
             return None
         finally:
