@@ -121,6 +121,7 @@ def read_diag_arrays(diag_file, idiag):
             os.remove(tmp_path)
 
     if idiag == 'diag_conv_q':
+        # Match common humidity plotting units (kg/kg -> g/kg)
         omf = omf * 1000.0
 
     keys = build_pairing_keys(lat, lon, hgt, tim)
@@ -180,6 +181,7 @@ def compute_profile_stats(omf, prs, bins):
         vals = omf[mask]
         if len(vals) == 0:
             continue
+        # OMF is Obs-Forecast; negate to report forecast bias (Forecast-Obs)
         bias[i] = np.mean(-1.0 * vals)
         rmse[i] = np.sqrt(np.mean(vals**2))
         count[i] = len(vals)
