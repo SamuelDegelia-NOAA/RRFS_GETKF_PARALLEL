@@ -123,10 +123,12 @@ def read_diag_arrays(diag_file, idiag):
 
     if idiag == 'diag_conv_q':
         # Match common humidity plotting units (kg/kg -> g/kg)
-        omf = omf * 1000.0
+        omf = omf * 1000.0  # Convert kg/kg to g/kg
 
     keys = build_pairing_keys(lat, lon, hgt, tim)
 
+    # Per-file quality filtering; pair_omf later applies additional joint filtering
+    # on both systems after matching.
     mask = np.isfinite(prs) & np.isfinite(omf)
     return {
         'keys': np.array(keys, dtype=object)[mask],
