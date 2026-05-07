@@ -1,7 +1,4 @@
 import os
-import gzip
-import shutil
-import tempfile
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -80,46 +77,34 @@ def get_diag_path(cycle, system, idiag):
 
 
 def read_diag_arrays(diag_file, idiag):
-    """Read pressure, OMF-adjusted, and pairing metadata from a gzipped diag file."""
-    tmp = tempfile.NamedTemporaryFile(suffix='.nc4', delete=False)
-    tmp_path = tmp.name
-    tmp.close()
+    """Read pressure, OMF-adjusted, and pairing metadata from an unzipped diag file."""
+    with Dataset(diag_file, 'r') as ds:
+        lat = safe_read_var(ds, 'Latitude')
+        lon = safe_read_var(ds, 'Longitude')
+        hgt = safe_read_var(ds, 'Height')
+        tim = safe_read_var(ds, 'Time')
 
-    try:
-        with gzip.open(diag_file, 'rb') as f_in, open(tmp_path, 'wb') as f_out:
-            shutil.copyfileobj(f_in, f_out)
+        try:
+            prs = safe_read_var(ds, 'Pressure')
+        except KeyError:
+            prs = np.full(len(lat), np.nan)
 
-        with Dataset(tmp_path, 'r') as ds:
-            lat = safe_read_var(ds, 'Latitude')
-            lon = safe_read_var(ds, 'Longitude')
-            hgt = safe_read_var(ds, 'Height')
-            tim = safe_read_var(ds, 'Time')
+        if idiag == 'diag_conv_uv':
+            # For wind diagnostics, use a consistent scalar OMF definition based
+            # on vector wind speed: OMF_speed = |Obs| - |Forecast|.
+            u_obs = safe_read_var(ds, 'u_Observation')
+            v_obs = safe_read_var(ds, 'v_Observation')
+            u_omf = safe_read_var(ds, 'u_Obs_Minus_Forecast_adjusted')
+            v_omf = safe_read_var(ds, 'v_Obs_Minus_Forecast_adjusted')
 
-            try:
-                prs = safe_read_var(ds, 'Pressure')
-            except KeyError:
-                prs = np.full(len(lat), np.nan)
+            u_fcst = u_obs - u_omf
+            v_fcst = v_obs - v_omf
 
-            if idiag == 'diag_conv_uv':
-                # For wind diagnostics, use a consistent scalar OMF definition based
-                # on vector wind speed: OMF_speed = |Obs| - |Forecast|.
-                u_obs = safe_read_var(ds, 'u_Observation')
-                v_obs = safe_read_var(ds, 'v_Observation')
-                u_omf = safe_read_var(ds, 'u_Obs_Minus_Forecast_adjusted')
-                v_omf = safe_read_var(ds, 'v_Obs_Minus_Forecast_adjusted')
-
-                u_fcst = u_obs - u_omf
-                v_fcst = v_obs - v_omf
-
-                obs_spd = np.sqrt(u_obs**2 + v_obs**2)
-                fcst_spd = np.sqrt(u_fcst**2 + v_fcst**2)
-                omf = obs_spd - fcst_spd
-            else:
-                omf = safe_read_var(ds, 'Obs_Minus_Forecast_adjusted')
-
-    finally:
-        if os.path.exists(tmp_path):
-            os.remove(tmp_path)
+            obs_spd = np.sqrt(u_obs**2 + v_obs**2)
+            fcst_spd = np.sqrt(u_fcst**2 + v_fcst**2)
+            omf = obs_spd - fcst_spd
+        else:
+            omf = safe_read_var(ds, 'Obs_Minus_Forecast_adjusted')
 
     if idiag == 'diag_conv_q':
         # Match common humidity plotting units (kg/kg -> g/kg)
@@ -162,6 +147,25 @@ def pair_omf(gsi_data, jedi_data):
 
     good = np.isfinite(gsi_omf) & np.isfinite(jedi_omf) & np.isfinite(prs)
     return gsi_omf[good], jedi_omf[good], prs[good]
+
+
+def stage_local_diag(diag_file_gz, local_subdir):
+    """Copy and unzip a remote diag file to local working storage."""
+    os.makedirs(local_subdir, exist_ok=True)
+
+    local_gz = os.path.join(local_subdir, os.path.basename(diag_file_gz))
+    local_nc = local_gz[:-3]
+
+    if not os.path.exists(local_nc):
+        if not os.path.exists(diag_file_gz):
+            return None
+        os.system(f'cp {diag_file_gz} {local_subdir}/')
+        os.system(f'gunzip -f {local_gz}')
+
+    if not os.path.exists(local_nc):
+        return None
+
+    return local_nc
 
 
 def build_pressure_bins():
@@ -238,6 +242,11 @@ def plot_count_profile(gsi_count, jedi_count, centers, idiag, cycle_label, outpa
 
 def main():
     os.makedirs(outdir, exist_ok=True)
+    workdir = os.path.join(outdir, f'work_{firstcycle}_{lastcycle}')
+    gsi_local_dir = os.path.join(workdir, 'gsi')
+    jedi_local_dir = os.path.join(workdir, 'jedi')
+    os.makedirs(gsi_local_dir, exist_ok=True)
+    os.makedirs(jedi_local_dir, exist_ok=True)
 
     cycles = enumerate_cycles(firstcycle, lastcycle)
     cycle_label = f'{firstcycle}-{lastcycle}'
@@ -262,8 +271,14 @@ def main():
                     continue
 
                 try:
-                    gsi_data = read_diag_arrays(gsi_file, idiag)
-                    jedi_data = read_diag_arrays(jedi_file, idiag)
+                    local_gsi = stage_local_diag(gsi_file, gsi_local_dir)
+                    local_jedi = stage_local_diag(jedi_file, jedi_local_dir)
+                    if local_gsi is None or local_jedi is None:
+                        print(f'[{cycle}] Failed to stage one or both files for {idiag}, skipping.')
+                        continue
+
+                    gsi_data = read_diag_arrays(local_gsi, idiag)
+                    jedi_data = read_diag_arrays(local_jedi, idiag)
                     gsi_omf, jedi_omf, prs = pair_omf(gsi_data, jedi_data)
                 except Exception as exc:
                     print(f'[{cycle}] Failed reading/pairing {idiag}: {exc}')
@@ -284,7 +299,11 @@ def main():
 
                 if gsi_exists:
                     try:
-                        gsi_data = read_diag_arrays(gsi_file, idiag)
+                        local_gsi = stage_local_diag(gsi_file, gsi_local_dir)
+                        if local_gsi is None:
+                            print(f'[{cycle}] Failed to stage GSI file for {idiag}.')
+                            continue
+                        gsi_data = read_diag_arrays(local_gsi, idiag)
                         gsi_omf_all.append(gsi_data['omf'])
                         gsi_prs_all.append(gsi_data['pressure'])
                     except Exception as exc:
@@ -292,7 +311,11 @@ def main():
 
                 if jedi_exists:
                     try:
-                        jedi_data = read_diag_arrays(jedi_file, idiag)
+                        local_jedi = stage_local_diag(jedi_file, jedi_local_dir)
+                        if local_jedi is None:
+                            print(f'[{cycle}] Failed to stage JEDI file for {idiag}.')
+                            continue
+                        jedi_data = read_diag_arrays(local_jedi, idiag)
                         jedi_omf_all.append(jedi_data['omf'])
                         jedi_prs_all.append(jedi_data['pressure'])
                     except Exception as exc:
