@@ -188,7 +188,14 @@ resolve_rrfs_input_path() {
     local cycle="$1"
     local date="${cycle:0:8}"
     local hh="${cycle:8:2}"
-    echo "${rrfspath}/enkfrrfs.${date}/${hh}"
+    if [[ -d "${rrfspath}/enkfrrfs.${date}/${hh}" ]]; then
+        echo "${rrfspath}/enkfrrfs.${date}/${hh}"
+    elif [[ -d "${rrfspath}/enkfrrfs.${date}/${hh}_spinup" ]]; then
+        echo "${rrfspath}/enkfrrfs.${date}/${hh}_spinup"
+    else
+        return 1
+    fi
+
 }
 
 get_successful_cycles() {

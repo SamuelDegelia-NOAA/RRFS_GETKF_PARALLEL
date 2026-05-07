@@ -1,10 +1,6 @@
 #!/bin/bash
 
-# This script grabs the real-time background ensemble from RRFSv1 and runs a JEDI-based GETKF analysis every hour
-# Tasks include:
-#   1. Run bufr2ioda.x to generate IODA observations including radar obs
-#   2. Set up analysis run directory using saved fix files
-#   3. Run GETKF analysis
+# This driver runs the verification for the earlier-run GETKF realtime parallel
 
 ################
 ### Settings ###
@@ -14,6 +10,9 @@
 RDASApp=/lfs/h2/emc/da/noscrub/samuel.degelia/RDASApp_redist_iodafix/RDASApp
 rrfsworkflow=/lfs/h2/emc/da/noscrub/samuel.degelia/rrfs-workflow_na3km/rrfs-workflow
 baserundir=/lfs/h2/emc/stmp/samuel.degelia/GETKF_PARALLEL
+
+# Where to save the diag files for both GSI and JEDI
+basesavedir=/lfs/h2/emc/da/noscrub/samuel.degelia/PARALLEL_SAVE
 
 # GETKF config
 getkfyaml=/lfs/h2/emc/da/noscrub/samuel.degelia/parallel_getkf/fix/rdas-atmosphere-templates-fv3_na3km_getkf.yaml
@@ -80,6 +79,7 @@ bufrdir=${baserundir}/bufr.${YYYYMMDD}${HH}
 mrmsdir=${baserundir}/mrms.${YYYYMMDD}${HH}
 anldir=${baserundir}/getkf.${YYYYMMDD}${HH}
 verifdir=${baserundir}/verif.${YYYYMMDD}${HH}
+savedir=${basesavedir}/verif.${YYYYMMDD}${HH}
 currdir=`pwd`
 fixsimple=${currdir}/fix
 if [ ! -d ./logs ]; then
@@ -113,11 +113,12 @@ anldir='${anldir}'
 verifdir='${verifdir}'
 getkfyaml='${getkfyaml}'
 fixsimple='${fixsimple}'
-COMOUT='${currdir}/logs'
+COMOUT='${savedir}'
 EOF
 
 rm -rf ${verifdir}
 mkdir -p ${verifdir}
+mkdir -p ${savedir}
 cp ${envfile} ${verifdir}
 cp ./util/apply_jedi_incs.py ${verifdir}
 

@@ -25,7 +25,6 @@ PREDEF_GRID_NAME=RRFS_NA_3km
 PARMdir=${rrfsworkflow}/parm
 USHdir=${rrfsworkflow}/ush
 EXECdir=${rrfsworkflow}/exec
-COMOUT="."
 pgmout=${verifdir}/pgm.log
 
 # Some fix namelists
@@ -765,9 +764,9 @@ else
 #  sed -e 's/   asm all     /rw asm 900 0000/; s/   rej all     /rw rej 900 0000/; s/   mon all     /rw mon 900 0000/' fort.209 > fit_rw1
 
   #cat fit_p1 fit_w1 fit_t1 fit_q1 fit_pw1 fit_rad1 fit_rw1 > ${COMOUT}/rrfs.t${HH}z.fits.tm00
-  cat fit_p1 fit_w1 fit_t1 fit_q1 > ${COMOUT}/rrfs.t${HH}z.fits.tm00
+  cat fit_p1 fit_w1 fit_t1 fit_q1 > ./rrfs.t${HH}z.fits.tm00
   #cat fort.208 fort.210 fort.211 fort.212 fort.213 fort.220 > ${COMOUT}/rrfs.t${HH}z.fits2.tm00
-  cat fort.208 fort.213 fort.220 > ${COMOUT}/rrfs.t${HH}z.fits2.tm00
+  cat fort.208 fort.213 fort.220 > ./rrfs.t${HH}z.fits2.tm00
   #cat fort.238 > ${COMOUT}/rrfs.t${HH}z.fits3.tm00
   #cp -L dbzobs.nc  ${COMOUT}/rrfs.mrms.${YYYYMMDDHH}.nc
 fi
@@ -779,10 +778,10 @@ fi
 #
 #-----------------------------------------------------------------------
 #
-touch ${COMOUT}/gsi_complete.txt
-if [[ ${anav_type} == "radardbz" || ${anav_type} == "conv_dbz" ]]; then
-  touch ${COMOUT}/gsi_complete_radar.txt # for nonvarcldanl
-fi
+#touch ${COMOUT}/gsi_complete.txt
+#if [[ ${anav_type} == "radardbz" || ${anav_type} == "conv_dbz" ]]; then
+#  touch ${COMOUT}/gsi_complete_radar.txt # for nonvarcldanl
+#fi
 #
 #-----------------------------------------------------------------------
 # Loop over first and last outer loops to generate innovation
@@ -800,7 +799,8 @@ if [ "${DO_GSIDIAG_OFFLINE}" = "FALSE" ]; then
   netcdf_diag=${netcdf_diag:-".false."}
   binary_diag=${binary_diag:-".true."}
 
-  loops="01 03"
+  #loops="01 03"
+  loops="01"
   for loop in $loops; do
 
   case $loop in
@@ -829,7 +829,8 @@ if [ "${DO_GSIDIAG_OFFLINE}" = "FALSE" ]; then
   if [ "$netcdf_diag" = ".true." ]; then
     export pgm="nc_diag_cat.x"
 
-    listall_cnv="conv_ps conv_q conv_t conv_uv conv_pw conv_rw conv_sst conv_dbz conv_fed"
+    #listall_cnv="conv_ps conv_q conv_t conv_uv conv_pw conv_rw conv_sst conv_dbz conv_fed"
+    listall_cnv="conv_ps conv_q conv_t conv_uv"
     listall_rad="hirs2_n14 msu_n14 sndr_g08 sndr_g11 sndr_g11 sndr_g12 sndr_g13 sndr_g08_prep sndr_g11_prep sndr_g12_prep sndr_g13_prep sndrd1_g11 sndrd2_g11 sndrd3_g11 sndrd4_g11 sndrd1_g15 sndrd2_g15 sndrd3_g15 sndrd4_g15 sndrd1_g13 sndrd2_g13 sndrd3_g13 sndrd4_g13 hirs3_n15 hirs3_n16 hirs3_n17 amsua_n15 amsua_n16 amsua_n17 amsua_n18 amsua_n19 amsua_metop-a amsua_metop-b amsua_metop-c amsub_n15 amsub_n16 amsub_n17 hsb_aqua airs_aqua amsua_aqua imgr_g08 imgr_g11 imgr_g12 pcp_ssmi_dmsp pcp_tmi_trmm conv sbuv2_n16 sbuv2_n17 sbuv2_n18 omi_aura ssmi_f13 ssmi_f14 ssmi_f15 hirs4_n18 hirs4_metop-a mhs_n18 mhs_n19 mhs_metop-a mhs_metop-b mhs_metop-c amsre_low_aqua amsre_mid_aqua amsre_hig_aqua ssmis_las_f16 ssmis_uas_f16 ssmis_img_f16 ssmis_env_f16 iasi_metop-a iasi_metop-b iasi_metop-c seviri_m08 seviri_m09 seviri_m10 seviri_m11 cris_npp atms_npp ssmis_f17 cris-fsr_npp cris-fsr_n20 atms_n20 abi_g16 abi_g18 atms_n21 cris-fsr_n21"
 
     for type in $listall_cnv; do
@@ -846,21 +847,21 @@ if [ "${DO_GSIDIAG_OFFLINE}" = "FALSE" ]; then
       fi
     done
 
-    for type in $listall_rad; do
-      count=$(ls pe*.${type}_${loop}.nc4 | wc -l)
-      if [[ $count -gt 0 ]]; then
-        #. prep_step
-        ${APRUN} $pgm -o diag_${type}_${string}.${YYYYMMDDHH}.nc4 pe*.${type}_${loop}.nc4 >>$pgmout 2>errfile
-	export err=$?; err_chk
-	mv errfile errfile_nc_diag_cat_$type
-        gzip diag_${type}_${string}.${YYYYMMDDHH}.nc4
-        #cp diag_${type}_${string}.${YYYYMMDDHH}.nc4.gz ${COMOUT}
-        echo "diag_${type}_${string}.${YYYYMMDDHH}.nc4.gz" >> listrad
-        numfile_rad=`expr ${numfile_rad} + 1`
-      else
-        echo 'No diag_' ${type} 'exist'
-      fi
-    done
+#    for type in $listall_rad; do
+#      count=$(ls pe*.${type}_${loop}.nc4 | wc -l)
+#      if [[ $count -gt 0 ]]; then
+#        #. prep_step
+#        ${APRUN} $pgm -o diag_${type}_${string}.${YYYYMMDDHH}.nc4 pe*.${type}_${loop}.nc4 >>$pgmout 2>errfile
+#	export err=$?; err_chk
+#	mv errfile errfile_nc_diag_cat_$type
+#        gzip diag_${type}_${string}.${YYYYMMDDHH}.nc4
+#        #cp diag_${type}_${string}.${YYYYMMDDHH}.nc4.gz ${COMOUT}
+#        echo "diag_${type}_${string}.${YYYYMMDDHH}.nc4.gz" >> listrad
+#        numfile_rad=`expr ${numfile_rad} + 1`
+#      else
+#        echo 'No diag_' ${type} 'exist'
+#      fi
+#    done
   fi
   done
 
@@ -919,6 +920,13 @@ if [ "${DO_GSIDIAG_OFFLINE}" = "FALSE" ]; then
     fi
   fi
 fi # run diag inline (with GSI)
+
+# Last bit to save all diag files to our RT Parallel comout
+mkdir -p ${COMOUT}/jedi
+mkdir -p ${COMOUT}/gsi
+cp diag* ${COMOUT}/jedi
+cp ${rrfspath}/enkfrrfs.${YYYYMMDD}/${HH}*/ensmean/analysis/diag* ${COMOUT}/gsi
+
 #
 #-----------------------------------------------------------------------
 #
