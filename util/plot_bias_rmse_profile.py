@@ -100,8 +100,9 @@ def read_diag_arrays(diag_file, idiag):
             except KeyError:
                 prs = np.full(len(lat), np.nan)
 
-            if idiag == 'diag_conv_uv' and 'Obs_Minus_Forecast_adjusted' not in ds.variables:
-                # For wind diagnostics, construct a scalar OMF from component speed
+            if idiag == 'diag_conv_uv':
+                # For wind diagnostics, use a consistent scalar OMF definition based
+                # on vector wind speed: OMF_speed = |Obs| - |Forecast|.
                 u_obs = safe_read_var(ds, 'u_Observation')
                 v_obs = safe_read_var(ds, 'v_Observation')
                 u_omf = safe_read_var(ds, 'u_Obs_Minus_Forecast_adjusted')
@@ -182,7 +183,8 @@ def compute_profile_stats(omf, prs, bins):
         if len(vals) == 0:
             continue
         # OMF is Obs-Forecast; negate to report forecast bias (Forecast-Obs)
-        bias[i] = np.mean(-1.0 * vals)
+        forecast_minus_obs = -1.0 * vals
+        bias[i] = np.mean(forecast_minus_obs)
         rmse[i] = np.sqrt(np.mean(vals**2))
         count[i] = len(vals)
 
