@@ -156,6 +156,7 @@ def stage_local_diag(diag_file_gz, local_subdir):
     os.makedirs(local_subdir, exist_ok=True)
 
     if not diag_file_gz.endswith('.gz'):
+        print(f'Unsupported diag format (expected .gz): {diag_file_gz}')
         return None
     local_gz = os.path.join(local_subdir, os.path.basename(diag_file_gz))
     local_nc = local_gz.removesuffix('.gz')
@@ -163,10 +164,18 @@ def stage_local_diag(diag_file_gz, local_subdir):
     if not os.path.exists(local_nc):
         if not os.path.exists(diag_file_gz):
             return None
-        shutil.copy2(diag_file_gz, local_gz)
-        with gzip.open(local_gz, 'rb') as f_in, open(local_nc, 'wb') as f_out:
-            shutil.copyfileobj(f_in, f_out)
-        os.remove(local_gz)
+        try:
+            shutil.copy2(diag_file_gz, local_gz)
+            with gzip.open(local_gz, 'rb') as f_in, open(local_nc, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        except Exception as exc:
+            print(f'Failed to copy/unzip diag file {diag_file_gz}: {exc}')
+            if os.path.exists(local_nc):
+                os.remove(local_nc)
+            return None
+        finally:
+            if os.path.exists(local_gz):
+                os.remove(local_gz)
 
     if not os.path.exists(local_nc):
         return None
