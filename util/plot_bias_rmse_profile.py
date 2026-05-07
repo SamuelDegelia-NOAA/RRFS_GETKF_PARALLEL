@@ -1,7 +1,5 @@
 import os
-import gzip
-import shutil
-from contextlib import suppress
+import subprocess
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -152,31 +150,21 @@ def pair_omf(gsi_data, jedi_data):
     return gsi_omf[good], jedi_omf[good], prs[good]
 
 
-def stage_local_diag(diag_file_gz, local_subdir):
-    """Copy and unzip a remote diag file to local working storage."""
-    os.makedirs(local_subdir, exist_ok=True)
-
+def ensure_unzipped_diag(diag_file_gz):
+    """Ensure a .nc4 diag exists by unzipping in place when needed."""
     if not diag_file_gz.endswith('.gz'):
         print(f'Unsupported diag format (expected .gz): {diag_file_gz}')
         return None
-    local_gz = os.path.join(local_subdir, os.path.basename(diag_file_gz))
-    local_nc = local_gz.removesuffix('.gz')
+    local_nc = diag_file_gz.removesuffix('.gz')
 
     if not os.path.exists(local_nc):
         if not os.path.exists(diag_file_gz):
             return None
         try:
-            shutil.copy2(diag_file_gz, local_gz)
-            with gzip.open(local_gz, 'rb') as f_in, open(local_nc, 'wb') as f_out:
-                shutil.copyfileobj(f_in, f_out)
+            subprocess.run(['gunzip', '-f', diag_file_gz], check=True)
         except Exception as exc:
-            print(f'Failed to copy/unzip diag file {diag_file_gz}: {exc}')
-            with suppress(FileNotFoundError):
-                os.remove(local_nc)
+            print(f'Failed to unzip diag file {diag_file_gz}: {exc}')
             return None
-        finally:
-            if os.path.exists(local_gz):
-                os.remove(local_gz)
 
     if not os.path.exists(local_nc):
         return None
@@ -258,9 +246,6 @@ def plot_count_profile(gsi_count, jedi_count, centers, idiag, cycle_label, outpa
 
 def main():
     os.makedirs(outdir, exist_ok=True)
-    workdir = os.path.join(outdir, f'work_{firstcycle}_{lastcycle}')
-    gsi_local_dir = os.path.join(workdir, 'gsi')
-    jedi_local_dir = os.path.join(workdir, 'jedi')
 
     cycles = enumerate_cycles(firstcycle, lastcycle)
     cycle_label = f'{firstcycle}-{lastcycle}'
@@ -275,9 +260,10 @@ def main():
         for cycle in cycles:
             gsi_file = get_diag_path(cycle, 'gsi', idiag)
             jedi_file = get_diag_path(cycle, 'jedi', idiag)
-
-            gsi_exists = os.path.exists(gsi_file)
-            jedi_exists = os.path.exists(jedi_file)
+            gsi_nc = gsi_file.removesuffix('.gz')
+            jedi_nc = jedi_file.removesuffix('.gz')
+            gsi_exists = os.path.exists(gsi_file) or os.path.exists(gsi_nc)
+            jedi_exists = os.path.exists(jedi_file) or os.path.exists(jedi_nc)
 
             if DO_PAIR:
                 if not gsi_exists or not jedi_exists:
@@ -285,10 +271,10 @@ def main():
                     continue
 
                 try:
-                    local_gsi = stage_local_diag(gsi_file, gsi_local_dir)
-                    local_jedi = stage_local_diag(jedi_file, jedi_local_dir)
+                    local_gsi = ensure_unzipped_diag(gsi_file)
+                    local_jedi = ensure_unzipped_diag(jedi_file)
                     if local_gsi is None or local_jedi is None:
-                        print(f'[{cycle}] Failed to stage one or both files for {idiag}, skipping.')
+                        print(f'[{cycle}] Failed to prepare one or both files for {idiag}, skipping.')
                         continue
 
                     gsi_data = read_diag_arrays(local_gsi, idiag)
@@ -313,9 +299,9 @@ def main():
 
                 if gsi_exists:
                     try:
-                        local_gsi = stage_local_diag(gsi_file, gsi_local_dir)
+                        local_gsi = ensure_unzipped_diag(gsi_file)
                         if local_gsi is None:
-                            print(f'[{cycle}] Failed to stage GSI file for {idiag}.')
+                            print(f'[{cycle}] Failed to prepare GSI file for {idiag}.')
                             continue
                         gsi_data = read_diag_arrays(local_gsi, idiag)
                         gsi_omf_all.append(gsi_data['omf'])
@@ -325,9 +311,9 @@ def main():
 
                 if jedi_exists:
                     try:
-                        local_jedi = stage_local_diag(jedi_file, jedi_local_dir)
+                        local_jedi = ensure_unzipped_diag(jedi_file)
                         if local_jedi is None:
-                            print(f'[{cycle}] Failed to stage JEDI file for {idiag}.')
+                            print(f'[{cycle}] Failed to prepare JEDI file for {idiag}.')
                             continue
                         jedi_data = read_diag_arrays(local_jedi, idiag)
                         jedi_omf_all.append(jedi_data['omf'])
