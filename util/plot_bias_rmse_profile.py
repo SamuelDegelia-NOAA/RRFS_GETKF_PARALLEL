@@ -205,8 +205,7 @@ def build_pressure_bins():
     first_center = PRESSURE_MIN_HPA + half_width
     num_bins = int((PRESSURE_MAX_BIN_CENTER_HPA - first_center)
                    / PRESSURE_BIN_WIDTH_HPA) + 1
-    centers = np.linspace(first_center, PRESSURE_MAX_BIN_CENTER_HPA,
-                          num=num_bins, dtype=float)
+    centers = np.linspace(first_center, PRESSURE_MAX_BIN_CENTER_HPA, num=num_bins)
     bins = []
     for i, center in enumerate(centers):
         low = center - half_width
