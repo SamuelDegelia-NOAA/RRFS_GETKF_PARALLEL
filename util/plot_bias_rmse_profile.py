@@ -8,13 +8,12 @@ import matplotlib.pyplot as plt
 from netCDF4 import Dataset
 
 # Settings
-firstcycle = '2026050407'  # YYYYMMDDHH
+firstcycle = '2026050601'  # YYYYMMDDHH
 lastcycle = '2026050711'   # YYYYMMDDHH
 archivedir = '/lfs/h2/emc/da/noscrub/samuel.degelia/PARALLEL_SAVE'
-outdir = 'plots_profile'
+outdir = '.'
 
 diaglist = [
-    'diag_conv_ps',
     'diag_conv_t',
     'diag_conv_q',
     'diag_conv_uv',
@@ -23,14 +22,16 @@ diaglist = [
 DO_PAIR = True
 
 # Pressure-bin settings (hPa)
-PRESSURE_BIN_WIDTH_HPA = 100.0
-PRESSURE_MIN_HPA = 0.0
-PRESSURE_MAX_HPA = 1100.0
+PRESSURE_BIN_WIDTH_HPA = 50.0
+PRESSURE_MIN_HPA = 25.0
+PRESSURE_MAX_HPA = 1025.0
 GUNZIP_TIMEOUT_SECONDS = 300
+
+GSI_COLOR = 'red'
+JEDI_COLOR = 'blue'
 
 PLOT_NAMES = {
     'diag_conv_t': 'Temperature',
-    'diag_conv_ps': 'Surface Pressure',
     'diag_conv_q': 'Humidity',
     'diag_conv_uv': 'Wind',
 }
@@ -198,10 +199,18 @@ def ensure_unzipped_diag(diag_file_gz):
 
 def build_pressure_bins():
     """Construct pressure bins and bin centers."""
-    edges = np.arange(PRESSURE_MIN_HPA, PRESSURE_MAX_HPA + PRESSURE_BIN_WIDTH_HPA,
-                      PRESSURE_BIN_WIDTH_HPA)
-    bins = [(edges[i], edges[i + 1]) for i in range(len(edges) - 1)]
-    centers = np.array([(low + high) * 0.5 for low, high in bins])
+    half_width = 0.5 * PRESSURE_BIN_WIDTH_HPA
+    centers = np.arange(PRESSURE_BIN_WIDTH_HPA, 1000.0 + PRESSURE_BIN_WIDTH_HPA,
+                        PRESSURE_BIN_WIDTH_HPA)
+    bins = []
+    for center in centers:
+        low = center - half_width
+        high = center + half_width
+        if center == centers[0]:
+            low = 0.0
+        if center == centers[-1]:
+            high = np.inf
+        bins.append((low, high))
     return bins, centers
 
 
@@ -225,20 +234,25 @@ def compute_profile_stats(omf, prs, bins):
     return bias, rmse, count
 
 
-def plot_profile(gsi_prof, jedi_prof, centers, gsi_count, jedi_count,
-                 idiag, stat_name, cycle_label, outpath):
-    """Write one GSI/JEDI overlaid vertical profile plot."""
+def plot_stat_profile(gsi_bias, gsi_rmse, jedi_bias, jedi_rmse, centers,
+                      gsi_count, jedi_count, idiag, cycle_label, outpath):
+    """Write one combined GSI/JEDI bias and RMSE vertical profile plot."""
     fig, ax = plt.subplots(figsize=(7, 9))
 
-    ax.plot(gsi_prof, centers, marker='o', linewidth=1.5,
-            label=f'GSI (N={np.sum(gsi_count)})')
-    ax.plot(jedi_prof, centers, marker='o', linewidth=1.5,
-            label=f'JEDI (N={np.sum(jedi_count)})')
+    ax.plot(gsi_rmse, centers, color=GSI_COLOR, linestyle='-',
+            marker='o', linewidth=1.8, label=f'GSI RMSE (N={np.sum(gsi_count)})')
+    ax.plot(gsi_bias, centers, color=GSI_COLOR, linestyle='--',
+            marker='o', linewidth=1.8, label='GSI Bias')
+    ax.plot(jedi_rmse, centers, color=JEDI_COLOR, linestyle='-',
+            marker='o', linewidth=1.8, label=f'JEDI RMSE (N={np.sum(jedi_count)})')
+    ax.plot(jedi_bias, centers, color=JEDI_COLOR, linestyle='--',
+            marker='o', linewidth=1.8, label='JEDI Bias')
+    ax.axvline(0.0, color='black', linewidth=1.0)
 
     ax.set_ylim(PRESSURE_MAX_HPA, PRESSURE_MIN_HPA)
     ax.set_ylabel('Pressure (hPa)')
-    ax.set_xlabel(stat_name)
-    ax.set_title(f'{PLOT_NAMES.get(idiag, idiag)} {stat_name} profile\nCycles {cycle_label}')
+    ax.set_xlabel('Forecast RMSE (solid) / Forecast bias (dashed)')
+    ax.set_title(f'{PLOT_NAMES.get(idiag, idiag)} bias and RMSE profile\nCycles {cycle_label}')
     ax.grid(True, alpha=0.3)
     ax.legend(loc='best')
     fig.tight_layout()
@@ -251,9 +265,9 @@ def plot_count_profile(gsi_count, jedi_count, centers, idiag, cycle_label, outpa
     """Write count profile to help inspect per-bin sample sizes."""
     fig, ax = plt.subplots(figsize=(7, 9))
 
-    ax.step(gsi_count, centers, where='mid', linewidth=1.5,
+    ax.step(gsi_count, centers, where='mid', linewidth=1.5, color=GSI_COLOR,
             label=f'GSI total N={np.sum(gsi_count)}')
-    ax.step(jedi_count, centers, where='mid', linewidth=1.5,
+    ax.step(jedi_count, centers, where='mid', linewidth=1.5, color=JEDI_COLOR,
             label=f'JEDI total N={np.sum(jedi_count)}')
 
     ax.set_ylim(PRESSURE_MAX_HPA, PRESSURE_MIN_HPA)
@@ -359,14 +373,11 @@ def main():
 
         pair_tag = 'paired' if DO_PAIR else 'unpaired'
 
-        bias_file = os.path.join(outdir, f'{idiag}_bias_profile_{pair_tag}_{cycle_label}.png')
-        rmse_file = os.path.join(outdir, f'{idiag}_rmse_profile_{pair_tag}_{cycle_label}.png')
+        stat_file = os.path.join(outdir, f'{idiag}_bias_rmse_profile_{pair_tag}_{cycle_label}.png')
         cnt_file = os.path.join(outdir, f'{idiag}_count_profile_{pair_tag}_{cycle_label}.png')
 
-        plot_profile(gsi_bias, jedi_bias, centers, gsi_count, jedi_count,
-                     idiag, 'Forecast bias', cycle_label, bias_file)
-        plot_profile(gsi_rmse, jedi_rmse, centers, gsi_count, jedi_count,
-                     idiag, 'Forecast RMSE', cycle_label, rmse_file)
+        plot_stat_profile(gsi_bias, gsi_rmse, jedi_bias, jedi_rmse, centers,
+                          gsi_count, jedi_count, idiag, cycle_label, stat_file)
         plot_count_profile(gsi_count, jedi_count, centers, idiag, cycle_label, cnt_file)
 
     print('Done.')
