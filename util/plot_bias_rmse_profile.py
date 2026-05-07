@@ -118,8 +118,9 @@ def read_diag_arrays(diag_file, idiag):
     # Per-file quality filtering; pair_omf later applies additional joint filtering
     # on both systems after matching.
     mask = np.isfinite(prs) & np.isfinite(omf)
+    keys = [keys[i] for i in np.flatnonzero(mask)]
     return {
-        'keys': np.array(keys, dtype=object)[mask],
+        'keys': keys,
         'pressure': prs[mask],
         'omf': omf[mask],
     }
