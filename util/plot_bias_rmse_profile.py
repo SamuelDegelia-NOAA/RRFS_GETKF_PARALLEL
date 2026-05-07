@@ -1,5 +1,6 @@
 import os
 import subprocess
+from subprocess import CalledProcessError
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -151,7 +152,7 @@ def pair_omf(gsi_data, jedi_data):
 
 
 def ensure_unzipped_diag(diag_file_gz):
-    """Ensure a .nc4 diag exists by unzipping in place when needed."""
+    """Ensure a .nc4 diag exists by unzipping in place when needed, while keeping .gz."""
     if not diag_file_gz.endswith('.gz'):
         print(f'Unsupported diag format (expected .gz): {diag_file_gz}')
         return None
@@ -161,7 +162,10 @@ def ensure_unzipped_diag(diag_file_gz):
         if not os.path.exists(diag_file_gz):
             return None
         try:
-            subprocess.run(['gunzip', '-f', diag_file_gz], check=True)
+            subprocess.run(['gunzip', '-f', '-k', diag_file_gz], check=True)
+        except CalledProcessError as exc:
+            print(f'gunzip failed for {diag_file_gz} (returncode={exc.returncode})')
+            return None
         except Exception as exc:
             print(f'Failed to unzip diag file {diag_file_gz}: {exc}')
             return None
