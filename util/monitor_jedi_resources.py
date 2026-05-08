@@ -261,7 +261,7 @@ def _make_dual_axis_plot(
     left_overlay_label=None,
     right_overlay_label=None,
 ):
-    fig, ax_left = plt.subplots(figsize=(12, 4))
+    fig, ax_left = plt.subplots(figsize=(12, 5))
     ax_right = ax_left.twinx()
 
     line_left, = ax_left.plot(
@@ -305,7 +305,7 @@ def _make_dual_axis_plot(
     _format_time_axis(ax_left)
 
     labels = [line.get_label() for line in lines]
-    ax_left.legend(lines, labels, loc='upper left')
+    ax_left.legend(lines, labels, loc='lower center', bbox_to_anchor=(0.5, 1.0), ncol=2)
 
     fig.tight_layout()
     _save_plot(fig, filename)
