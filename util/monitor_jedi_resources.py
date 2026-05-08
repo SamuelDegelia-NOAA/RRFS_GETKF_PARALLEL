@@ -261,7 +261,7 @@ def _make_dual_axis_plot(
     left_overlay_label=None,
     right_overlay_label=None,
 ):
-    fig, ax_left = plt.subplots(figsize=(12, 5))
+    fig, ax_left = plt.subplots(figsize=(12, 4))
     ax_right = ax_left.twinx()
 
     line_left, = ax_left.plot(
@@ -305,7 +305,7 @@ def _make_dual_axis_plot(
     _format_time_axis(ax_left)
 
     labels = [line.get_label() for line in lines]
-    ax_left.legend(lines, labels, loc='lower center', bbox_to_anchor=(0.5, 1.0), ncol=2)
+    ax_left.legend(lines, labels, loc='upper left', ncol=2)
 
     fig.tight_layout()
     _save_plot(fig, filename)
@@ -320,19 +320,19 @@ _make_dual_axis_plot(
     runtime,
     memory,
     left_ylabel='Runtime (seconds)',
-    right_ylabel='Total Memory (GB)',
-    title='GETKF Runtime and Total Memory Usage per Cycle',
+    right_ylabel='Max Memory (GB)',
+    title='EnKF Runtime and Max Memory Usage per Cycle',
     filename='getkf_runtime_memory.png',
     left_color='steelblue',
     right_color='darkorange',
-    left_yrange=[0, 3000],
-    right_yrange=[0, 25000],
+    left_yrange=[0, 3500],
+    right_yrange=[0, 30000],
     left_label='JEDI Runtime',
-    right_label='JEDI Total Memory',
+    right_label='JEDI Max Memory',
     left_overlay_values=gsi_runtime if overlay_gsi else None,
     right_overlay_values=gsi_memory if overlay_gsi else None,
-    left_overlay_label='RRFSv1/GSI Runtime',
-    right_overlay_label='RRFSv1/GSI Total Memory',
+    left_overlay_label='GSI Runtime',
+    right_overlay_label='GSI Max Memory',
 )
 
 _make_dual_axis_plot(
