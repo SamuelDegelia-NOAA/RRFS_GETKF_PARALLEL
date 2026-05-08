@@ -1,3 +1,4 @@
+import glob
 import re
 import os
 import numpy as np
@@ -8,10 +9,14 @@ from datetime import datetime, timedelta
 # ---------------------------------------------------------------------------
 # Settings
 # ---------------------------------------------------------------------------
+
+start_cycle = '2026050600'
+end_cycle = '2026050712'
+outdir = '.'
+overlay_gsi = True
 logdir = '/lfs/h2/emc/da/noscrub/samuel.degelia/parallel_getkf/logs'
-start_cycle = '2026050406'
-end_cycle   = '2026050613'
-outdir      = '.'   # directory where plots are saved
+gsi_logdir = '/lfs/h1/ops/para/output'
+
 
 # ---------------------------------------------------------------------------
 # Regex patterns
@@ -29,33 +34,37 @@ RE_RUN_END = re.compile(
 RE_QC_PASSED = re.compile(
     r'^QC\s+(\S+)\s+(\S+):\s+(\d+)\s+passed out of\s+\d+\s+observations',
 )
+# Matches lines like:
+#   05/07/2026 00:49:54  M    nid001506 cput=03:40:57 mem=156304212kb
+#   05/07/2026 00:49:54  M    nid001507.dogwood.wcoss2.ncep.noaa.gov cput=03:54:47 mem=152298644kb
+RE_GSI_MEMORY = re.compile(
+    r"^\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2}\s+M\s+"
+    r"(nid\d+)(?:\.\S+)?\s+cput=\d{2}:\d{2}:\d{2}\s+mem=(\d+)kb"
+)
+RE_GSI_START = re.compile(r"^\s*stime\s*=\s*(.+)")
+RE_GSI_END   = re.compile(r"^\s*mtime\s*=\s*(.+)")
+GSI_RUNTIME_LOGS = [
+    'rrfs_enkf_calc_ensmean_{hour}.*',
+    'rrfs_enkf_observer_gsi_ensmean_{hour}.*',
+    'rrfs_enkf_observer_gsi_mem001_{hour}.*',
+    'rrfs_enkf_updt_{hour}.*',
+    'rrfs_enkf_radarref_{hour}.*',
+]
 
-# ---------------------------------------------------------------------------
-# Scan cycles and parse log files
-# ---------------------------------------------------------------------------
-cycleobj = datetime.strptime(start_cycle, '%Y%m%d%H')
-lastobj  = datetime.strptime(end_cycle,   '%Y%m%d%H')
 
-cycles       = []   # datetime objects for x-axis labels
-runtime      = []   # seconds (float or nan)
-memory       = []   # total GB (float or nan)
-radar_obs    = []   # int or nan
-conv_obs     = []   # int or nan
+def _get_first_glob(pattern):
+    """Return the first path matching a glob pattern, or None if no matches exist."""
+    matches = glob.glob(pattern)
+    if not matches:
+        return None
+    return matches[0]
 
-while cycleobj <= lastobj:
-    timestr = cycleobj.strftime('%Y%m%d%H')
-    logfile = os.path.join(logdir, f'rrfs.{timestr}.jediout.tm00')
 
-    cycles.append(cycleobj)
-
+def _parse_jedi_cycle(logfile, timestr):
+    """Parse one JEDI log file and return runtime, memory, radar obs, and conv obs."""
     if not os.path.exists(logfile):
         print(f'WARNING: log file not found for cycle {timestr}, skipping.')
-        runtime.append(np.nan)
-        memory.append(np.nan)
-        radar_obs.append(np.nan)
-        conv_obs.append(np.nan)
-        cycleobj += timedelta(hours=1)
-        continue
+        return np.nan, np.nan, np.nan, np.nan
 
     cyc_runtime = np.nan
     cyc_memory  = np.nan
@@ -82,10 +91,137 @@ while cycleobj <= lastobj:
                 else:
                     cyc_conv  += count
 
+    return (
+        cyc_runtime,
+        cyc_memory,
+        cyc_radar if cyc_radar > 0 else np.nan,
+        cyc_conv  if cyc_conv  > 0 else np.nan,
+    )
+
+
+def _get_gsi_memory(infile):
+    """Read a radarref log and return total GSI memory usage in GB across nodes."""
+    node_mem = {}
+
+    with open(infile, 'r') as fin:
+        for line in fin:
+            match = RE_GSI_MEMORY.search(line)
+            if match:
+                node = match.group(1)
+                mem_kb = int(match.group(2))
+                node_mem[node] = mem_kb
+
+    total_kb = sum(node_mem.values())
+    return total_kb / 1024 / 1024
+
+
+def _get_gsi_runtime(infile):
+    """Read a GSI job log and return runtime in seconds from stime and mtime."""
+    start_time = None
+    end_time = None
+
+    with open(infile, 'r') as fin:
+        for line in fin:
+            start_match = RE_GSI_START.search(line)
+            if start_match:
+                start_time = datetime.strptime(
+                    start_match.group(1).strip(),
+                    '%a %b %d %H:%M:%S %Y',
+                )
+
+            end_match = RE_GSI_END.search(line)
+            if end_match:
+                end_time = datetime.strptime(
+                    end_match.group(1).strip(),
+                    '%a %b %d %H:%M:%S %Y',
+                )
+
+    if start_time is None or end_time is None:
+        raise RuntimeError(
+            f'Could not find stime and/or mtime in {infile}'
+        )
+
+    return (end_time - start_time).total_seconds()
+
+
+def _parse_gsi_cycle(cycleobj):
+    """Parse GSI runtime and memory for one cycle and return both as floats or nan."""
+    date = cycleobj.strftime('%Y%m%d')
+    hour = cycleobj.strftime('%H')
+    cycle_dir = os.path.join(gsi_logdir, date)
+
+    search_pattern = os.path.join(cycle_dir, f'rrfs_enkf_radarref_{hour}.*')
+    if hour in ['07', '19']:
+        search_pattern = search_pattern.replace('radarref', 'radarref_spinup')
+    memory_log = _get_first_glob(search_pattern)
+    if memory_log is None:
+        cyc_memory = np.nan
+    else:
+        try:
+            cyc_memory = _get_gsi_memory(memory_log)
+        except OSError as exc:
+            print(f'WARNING: could not read GSI memory log for cycle {date}{hour}: {exc}')
+            cyc_memory = np.nan
+
+    runtime_logs = []
+    for pattern in GSI_RUNTIME_LOGS:
+        hour_pattern = pattern.format(hour=hour)
+        search_pattern = os.path.join(cycle_dir, hour_pattern)
+        if hour in ['07', '19']:
+            if 'observer_gsi_mem001' in search_pattern:
+                search_pattern = search_pattern.replace('mem001', 'spinup_mem001')
+            elif 'calc_ensmean' in search_pattern:
+                search_pattern = search_pattern.replace('ensmean', 'ensmean_spinup')
+            elif 'observer_gsi_ensmean' in search_pattern:
+                search_pattern = search_pattern.replace('ensmean', 'ensmean_spinup')
+            elif 'enkf_updt' in search_pattern:
+                search_pattern = search_pattern.replace('updt', 'updt_spinup')
+            elif 'radarref' in search_pattern:
+                search_pattern = search_pattern.replace('radarref', 'radarref_spinup')
+        logfile = _get_first_glob(search_pattern)
+        if logfile is None:
+            print(f'WARNING: missing GSI runtime log for cycle {date}{hour}: {hour_pattern}')
+            return np.nan, cyc_memory
+        runtime_logs.append(logfile)
+
+    try:
+        cyc_runtime = sum(_get_gsi_runtime(logfile) for logfile in runtime_logs)
+    except (OSError, RuntimeError, ValueError) as exc:
+        print(f'WARNING: could not parse GSI runtime for cycle {date}{hour}: {exc}')
+        cyc_runtime = np.nan
+
+    return cyc_runtime, cyc_memory
+
+# ---------------------------------------------------------------------------
+# Scan cycles and parse log files
+# ---------------------------------------------------------------------------
+cycleobj = datetime.strptime(start_cycle, '%Y%m%d%H')
+lastobj  = datetime.strptime(end_cycle,   '%Y%m%d%H')
+
+cycles       = []   # datetime objects for x-axis labels
+runtime      = []   # seconds (float or nan)
+memory       = []   # total GB (float or nan)
+radar_obs    = []   # int or nan
+conv_obs     = []   # int or nan
+gsi_runtime  = []   # seconds (float or nan)
+gsi_memory   = []   # total GB (float or nan)
+
+while cycleobj <= lastobj:
+    timestr = cycleobj.strftime('%Y%m%d%H')
+    logfile = os.path.join(logdir, f'rrfs.{timestr}.jediout.tm00')
+
+    cycles.append(cycleobj)
+    cyc_runtime, cyc_memory, cyc_radar, cyc_conv = _parse_jedi_cycle(logfile, timestr)
+
     runtime.append(cyc_runtime)
     memory.append(cyc_memory)
-    radar_obs.append(cyc_radar if cyc_radar > 0 else np.nan)
-    conv_obs.append(cyc_conv  if cyc_conv  > 0 else np.nan)
+    radar_obs.append(cyc_radar)
+    conv_obs.append(cyc_conv)
+
+    if overlay_gsi:
+        cyc_gsi_runtime, cyc_gsi_memory = _parse_gsi_cycle(cycleobj)
+        gsi_runtime.append(cyc_gsi_runtime)
+        gsi_memory.append(cyc_gsi_memory)
 
     cycleobj += timedelta(hours=1)
 
@@ -118,18 +254,42 @@ def _make_dual_axis_plot(
     right_color='darkorange',
     left_yrange=None,
     right_yrange=None,
+    left_label=None,
+    right_label=None,
+    left_overlay_values=None,
+    right_overlay_values=None,
+    left_overlay_label=None,
+    right_overlay_label=None,
 ):
     fig, ax_left = plt.subplots(figsize=(12, 4))
     ax_right = ax_left.twinx()
 
     line_left, = ax_left.plot(
         cycles, left_values,
-        marker='o', color=left_color, linewidth=1.5, label=left_ylabel
+        marker='o', color=left_color, linewidth=1.5, label=left_label or left_ylabel
     )
     line_right, = ax_right.plot(
         cycles, right_values,
-        marker='o', color=right_color, linewidth=1.5, label=right_ylabel
+        marker='o', color=right_color, linewidth=1.5, label=right_label or right_ylabel
     )
+
+    lines = [line_left, line_right]
+
+    if left_overlay_values is not None:
+        line_left_overlay, = ax_left.plot(
+            cycles, left_overlay_values,
+            marker='o', color=left_color, linewidth=1.5, linestyle='--',
+            label=left_overlay_label or left_ylabel,
+        )
+        lines.append(line_left_overlay)
+
+    if right_overlay_values is not None:
+        line_right_overlay, = ax_right.plot(
+            cycles, right_overlay_values,
+            marker='o', color=right_color, linewidth=1.5, linestyle='--',
+            label=right_overlay_label or right_ylabel,
+        )
+        lines.append(line_right_overlay)
 
     ax_left.set_ylabel(left_ylabel, color=left_color)
     ax_right.set_ylabel(right_ylabel, color=right_color)
@@ -144,9 +304,8 @@ def _make_dual_axis_plot(
 
     _format_time_axis(ax_left)
 
-    lines = [line_left, line_right]
     labels = [line.get_label() for line in lines]
-    ax_left.legend(lines, labels, loc='upper left')
+    ax_left.legend(lines, labels, loc='upper left', ncol=2)
 
     fig.tight_layout()
     _save_plot(fig, filename)
@@ -161,13 +320,19 @@ _make_dual_axis_plot(
     runtime,
     memory,
     left_ylabel='Runtime (seconds)',
-    right_ylabel='Total Memory (GB)',
-    title='GETKF Runtime and Total Memory Usage per Cycle',
+    right_ylabel='Max Memory (GB)',
+    title='EnKF Runtime and Max Memory Usage per Cycle',
     filename='getkf_runtime_memory.png',
     left_color='steelblue',
     right_color='darkorange',
-    left_yrange=[0, 3000],
-    right_yrange=[0, 25000],
+    left_yrange=[0, 3500],
+    right_yrange=[0, 30000],
+    left_label='JEDI Runtime',
+    right_label='JEDI Max Memory',
+    left_overlay_values=gsi_runtime if overlay_gsi else None,
+    right_overlay_values=gsi_memory if overlay_gsi else None,
+    left_overlay_label='GSI Runtime',
+    right_overlay_label='GSI Max Memory',
 )
 
 _make_dual_axis_plot(
