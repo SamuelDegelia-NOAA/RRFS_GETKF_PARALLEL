@@ -9,17 +9,14 @@ from datetime import datetime, timedelta
 # ---------------------------------------------------------------------------
 # Settings
 # ---------------------------------------------------------------------------
-logdir = os.environ.get(
-    'GETKF_MONITOR_LOGDIR',
-    '/lfs/h2/emc/da/noscrub/samuel.degelia/parallel_getkf/logs',
-)
-start_cycle = os.environ.get('GETKF_MONITOR_START_CYCLE', '2026050406')
-end_cycle   = os.environ.get('GETKF_MONITOR_END_CYCLE',   '2026050613')
-outdir      = os.environ.get('GETKF_MONITOR_OUTDIR', '.')   # directory where plots are saved
-overlay_gsi = os.environ.get('GETKF_MONITOR_OVERLAY_GSI', 'false').lower() in (
-    '1', 'true', 'yes', 'on'
-)
-gsi_logdir  = os.environ.get('GETKF_MONITOR_GSI_LOGDIR', '/lfs/h1/ops/para/output')
+
+start_cycle = '2026050600'
+end_cycle = '2026050712'
+outdir = '.'
+overlay_gsi = True
+logdir = '/lfs/h2/emc/da/noscrub/samuel.degelia/parallel_getkf/logs'
+gsi_logdir = '/lfs/h1/ops/para/output'
+
 
 # ---------------------------------------------------------------------------
 # Regex patterns
@@ -153,9 +150,10 @@ def _parse_gsi_cycle(cycleobj):
     hour = cycleobj.strftime('%H')
     cycle_dir = os.path.join(gsi_logdir, date)
 
-    memory_log = _get_first_glob(
-        os.path.join(cycle_dir, f'rrfs_enkf_radarref_{hour}.*')
-    )
+    search_pattern = os.path.join(cycle_dir, f'rrfs_enkf_radarref_{hour}.*')
+    if hour in ['07', '19']:
+        search_pattern = search_pattern.replace('radarref', 'radarref_spinup')
+    memory_log = _get_first_glob(search_pattern)
     if memory_log is None:
         cyc_memory = np.nan
     else:
@@ -168,7 +166,19 @@ def _parse_gsi_cycle(cycleobj):
     runtime_logs = []
     for pattern in GSI_RUNTIME_LOGS:
         hour_pattern = pattern.format(hour=hour)
-        logfile = _get_first_glob(os.path.join(cycle_dir, hour_pattern))
+        search_pattern = os.path.join(cycle_dir, hour_pattern)
+        if hour in ['07', '19']:
+            if 'observer_gsi_mem001' in search_pattern:
+                search_pattern = search_pattern.replace('mem001', 'spinup_mem001')
+            elif 'calc_ensmean' in search_pattern:
+                search_pattern = search_pattern.replace('ensmean', 'ensmean_spinup')
+            elif 'observer_gsi_ensmean' in search_pattern:
+                search_pattern = search_pattern.replace('ensmean', 'ensmean_spinup')
+            elif 'enkf_updt' in search_pattern:
+                search_pattern = search_pattern.replace('updt', 'updt_spinup')
+            elif 'radarref' in search_pattern:
+                search_pattern = search_pattern.replace('radarref', 'radarref_spinup')
+        logfile = _get_first_glob(search_pattern)
         if logfile is None:
             print(f'WARNING: missing GSI runtime log for cycle {date}{hour}: {hour_pattern}')
             return np.nan, cyc_memory
