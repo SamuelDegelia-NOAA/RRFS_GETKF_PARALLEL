@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 # ---------------------------------------------------------------------------
 
 start_cycle = '2026050600'
-end_cycle = '2026050712'
+end_cycle = '2026050812'
 outdir = '.'
 overlay_gsi = True
 logdir = '/lfs/h2/emc/da/noscrub/samuel.degelia/parallel_getkf/logs'
@@ -266,11 +266,11 @@ def _make_dual_axis_plot(
 
     line_left, = ax_left.plot(
         cycles, left_values,
-        marker='o', color=left_color, linewidth=1.5, label=left_label or left_ylabel
+        color=left_color, linewidth=1.5, label=left_label or left_ylabel
     )
     line_right, = ax_right.plot(
         cycles, right_values,
-        marker='o', color=right_color, linewidth=1.5, label=right_label or right_ylabel
+        color=right_color, linewidth=1.5, label=right_label or right_ylabel
     )
 
     lines = [line_left, line_right]
@@ -278,7 +278,7 @@ def _make_dual_axis_plot(
     if left_overlay_values is not None:
         line_left_overlay, = ax_left.plot(
             cycles, left_overlay_values,
-            marker='o', color=left_color, linewidth=1.5, linestyle='--',
+            color=left_color, linewidth=1.5, linestyle='--',
             label=left_overlay_label or left_ylabel,
         )
         lines.append(line_left_overlay)
@@ -286,7 +286,7 @@ def _make_dual_axis_plot(
     if right_overlay_values is not None:
         line_right_overlay, = ax_right.plot(
             cycles, right_overlay_values,
-            marker='o', color=right_color, linewidth=1.5, linestyle='--',
+            color=right_color, linewidth=1.5, linestyle='--',
             label=right_overlay_label or right_ylabel,
         )
         lines.append(line_right_overlay)
