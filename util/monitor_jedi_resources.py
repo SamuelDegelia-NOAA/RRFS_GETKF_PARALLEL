@@ -37,6 +37,9 @@ RE_RUN_END = re.compile(
 RE_QC_PASSED = re.compile(
     r'^QC\s+(\S+)\s+(\S+):\s+(\d+)\s+passed out of\s+\d+\s+observations',
 )
+# Matches lines like:
+#   05/07/2026 00:49:54  M    nid001506 cput=03:40:57 mem=156304212kb
+#   05/07/2026 00:49:54  M    nid001507.dogwood.wcoss2.ncep.noaa.gov cput=03:54:47 mem=152298644kb
 RE_GSI_MEMORY = re.compile(
     r"^\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2}\s+M\s+"
     r"(nid\d+)(?:\.\S+)?\s+cput=\d{2}:\d{2}:\d{2}\s+mem=(\d+)kb"
@@ -53,6 +56,7 @@ GSI_RUNTIME_LOGS = [
 
 
 def _get_first_glob(pattern):
+    """Return the first path matching a glob pattern, or None if no matches exist."""
     matches = glob.glob(pattern)
     if not matches:
         return None
@@ -60,6 +64,7 @@ def _get_first_glob(pattern):
 
 
 def _parse_jedi_cycle(logfile, timestr):
+    """Parse one JEDI log file and return runtime, memory, radar obs, and conv obs."""
     if not os.path.exists(logfile):
         print(f'WARNING: log file not found for cycle {timestr}, skipping.')
         return np.nan, np.nan, np.nan, np.nan
@@ -98,6 +103,7 @@ def _parse_jedi_cycle(logfile, timestr):
 
 
 def _get_gsi_memory(infile):
+    """Read a radarref log and return total GSI memory usage in GB across nodes."""
     node_mem = {}
 
     with open(infile, 'r') as fin:
@@ -113,6 +119,7 @@ def _get_gsi_memory(infile):
 
 
 def _get_gsi_runtime(infile):
+    """Read a GSI job log and return runtime in seconds from stime and mtime."""
     start_time = None
     end_time = None
 
@@ -141,6 +148,7 @@ def _get_gsi_runtime(infile):
 
 
 def _parse_gsi_cycle(cycleobj):
+    """Parse GSI runtime and memory for one cycle and return both as floats or nan."""
     date = cycleobj.strftime('%Y%m%d')
     hour = cycleobj.strftime('%H')
     cycle_dir = os.path.join(gsi_logdir, date)
@@ -159,9 +167,10 @@ def _parse_gsi_cycle(cycleobj):
 
     runtime_logs = []
     for pattern in GSI_RUNTIME_LOGS:
-        logfile = _get_first_glob(os.path.join(cycle_dir, pattern.format(hour=hour)))
+        hour_pattern = pattern.format(hour=hour)
+        logfile = _get_first_glob(os.path.join(cycle_dir, hour_pattern))
         if logfile is None:
-            print(f'WARNING: missing GSI runtime log for cycle {date}{hour}: {pattern.format(hour=hour)}')
+            print(f'WARNING: missing GSI runtime log for cycle {date}{hour}: {hour_pattern}')
             return np.nan, cyc_memory
         runtime_logs.append(logfile)
 
