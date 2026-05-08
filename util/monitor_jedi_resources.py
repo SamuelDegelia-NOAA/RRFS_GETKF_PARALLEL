@@ -19,7 +19,7 @@ outdir      = os.environ.get('GETKF_MONITOR_OUTDIR', '.')   # directory where pl
 overlay_gsi = os.environ.get('GETKF_MONITOR_OVERLAY_GSI', 'false').lower() in (
     '1', 'true', 'yes', 'on'
 )
-gsilogdir   = os.environ.get('GETKF_MONITOR_GSI_LOGDIR', '/lfs/h1/ops/para/output')
+gsi_logdir  = os.environ.get('GETKF_MONITOR_GSI_LOGDIR', '/lfs/h1/ops/para/output')
 
 # ---------------------------------------------------------------------------
 # Regex patterns
@@ -133,7 +133,9 @@ def _get_gsi_runtime(infile):
                 )
 
     if start_time is None or end_time is None:
-        raise RuntimeError(f'Could not find stime/mtime in {infile}')
+        raise RuntimeError(
+            f'Could not find stime and/or mtime in {infile}'
+        )
 
     return (end_time - start_time).total_seconds()
 
@@ -141,7 +143,7 @@ def _get_gsi_runtime(infile):
 def _parse_gsi_cycle(cycleobj):
     date = cycleobj.strftime('%Y%m%d')
     hour = cycleobj.strftime('%H')
-    cycle_dir = os.path.join(gsilogdir, date)
+    cycle_dir = os.path.join(gsi_logdir, date)
 
     memory_log = _get_first_glob(
         os.path.join(cycle_dir, f'rrfs_enkf_radarref_{hour}.*')
