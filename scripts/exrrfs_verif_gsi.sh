@@ -930,6 +930,22 @@ cp ${rrfspath}/enkfrrfs.${YYYYMMDD}/${HH}*/ensmean/analysis/diag* ${COMOUT}/gsi
 #
 #-----------------------------------------------------------------------
 #
+# Clean up the increments after done running
+#
+#-----------------------------------------------------------------------
+#
+if [ ${do_clean} == "TRUE" ]; then
+
+  rm inc_jedi*nc
+  rm fv3_dynvars
+  rm fv3_tracer
+  rm fv3_sfcdata
+
+fi
+
+#
+#-----------------------------------------------------------------------
+#
 # Print message indicating successful completion of script.
 #
 #-----------------------------------------------------------------------

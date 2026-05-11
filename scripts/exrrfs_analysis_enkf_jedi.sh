@@ -289,4 +289,24 @@ cp $pgmout ${COMOUT}/rrfs.${YYYYMMDDHH}.jediout.tm00
 #cp jedienkf_observer.yaml ${COMOUT}/jedienkf_observer.yaml
 mv errfile errfile_jedi_enkf
 
+#
+#-----------------------------------------------------------------------
+#
+# Clean up the increments after done running
+#
+#-----------------------------------------------------------------------
+#
+if [ ${do_clean} == "TRUE" ]; then
+
+  rm -rf mem*/*nc
+  rm inc_jedi*nc
+  rm -rf data/inputs/mem*/*prepdbz
+
+fi
+
+
 echo "JEDI-EnKF PROCESS completed successfully!!!"
+
+
+
+

@@ -10,6 +10,9 @@
 ### Settings ###
 ################
 
+# Clean up increments after done with analysis
+do_clean="TRUE"
+
 # Paths to local installs
 RDASApp=/lfs/h2/emc/da/noscrub/samuel.degelia/RDASApp_redist_iodafix/RDASApp
 rrfsworkflow=/lfs/h2/emc/da/noscrub/samuel.degelia/rrfs-workflow_na3km/rrfs-workflow
@@ -132,6 +135,7 @@ anldir='${anldir}'
 getkfyaml='${getkfyaml}'
 fixsimple='${fixsimple}'
 COMOUT='${currdir}/logs'
+do_clean='${do_clean}'
 EOF
 
 if [ -d ${bufrdir} ]; then

@@ -6,6 +6,9 @@
 ### Settings ###
 ################
 
+# Clean up analysis after done with the verification
+do_clean="TRUE"
+
 # Paths to local installs
 RDASApp=/lfs/h2/emc/da/noscrub/samuel.degelia/RDASApp_redist_iodafix/RDASApp
 rrfsworkflow=/lfs/h2/emc/da/noscrub/samuel.degelia/rrfs-workflow_na3km/rrfs-workflow
