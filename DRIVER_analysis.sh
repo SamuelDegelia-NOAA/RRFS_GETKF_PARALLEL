@@ -13,7 +13,8 @@
 # Clean up increments after done with analysis
 do_clean="TRUE"
 # Keep ensemble-mean increments for this many most-recent hourly cycles
-# (current cycle is always kept; older cycles beyond this window are cleaned)
+# when cleaning older cycle directories. Current-cycle ensemble-mean files
+# are preserved separately for verification.
 clean_ensmean_retention_cycles=24
 
 # Paths to local installs

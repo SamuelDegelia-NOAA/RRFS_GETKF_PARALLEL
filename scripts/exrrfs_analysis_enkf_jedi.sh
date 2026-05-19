@@ -306,7 +306,7 @@ if [ ${do_clean} == "TRUE" ]; then
   # Older-cycle cleanup: remove ensemble-mean increments once they are
   # outside the retention window.
   retention_cycles=${clean_ensmean_retention_cycles:-24}
-  if ! [[ "${retention_cycles}" =~ ^[0-9]+$ ]]; then
+  if ! [[ "${retention_cycles}" =~ ^[0-9]+$ ]] || ((retention_cycles < 1)); then
     echo "WARNING: clean_ensmean_retention_cycles='${retention_cycles}' is invalid; using 24"
     retention_cycles=24
   fi
