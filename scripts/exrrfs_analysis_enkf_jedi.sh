@@ -298,15 +298,33 @@ mv errfile errfile_jedi_enkf
 #
 if [ ${do_clean} == "TRUE" ]; then
 
-  rm -rf mem*/*nc
-  rm inc_jedi*nc
-  rm -rf data/inputs/mem*/*prepdbz
+  # Current-cycle cleanup: keep ensemble-mean increments for verification,
+  # remove only member-specific increment and prepdbz files.
+  rm -f mem*/*nc
+  rm -f data/inputs/mem*/*prepdbz
+
+  # Older-cycle cleanup: remove ensemble-mean increments once they are
+  # outside the retention window.
+  retention_cycles=${clean_ensmean_retention_cycles:-24}
+  if ! [[ "${retention_cycles}" =~ ^[0-9]+$ ]]; then
+    echo "WARNING: clean_ensmean_retention_cycles='${retention_cycles}' is invalid; using 24"
+    retention_cycles=24
+  fi
+  current_cycle_epoch=$(date -u -d "${YYYYMMDD:0:4}-${YYYYMMDD:4:2}-${YYYYMMDD:6:2} ${HH}:00:00" +%s)
+  cutoff_cycle=$(date -u -d "@$((current_cycle_epoch - retention_cycles * 3600))" +%Y%m%d%H)
+  echo "Cleaning ensemble-mean increment files for cycles <= ${cutoff_cycle} (retention_cycles=${retention_cycles})"
+  shopt -s nullglob
+  for old_cycle_dir in "${baserundir}"/getkf.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]; do
+    old_cycle=${old_cycle_dir##*.}
+    if [[ "${old_cycle}" =~ ^[0-9]{10}$ ]] && [[ "${old_cycle}" -le "${cutoff_cycle}" ]]; then
+      rm -f "${old_cycle_dir}"/inc_jedi*nc
+    fi
+  done
+  shopt -u nullglob
 
 fi
 
 
 echo "JEDI-EnKF PROCESS completed successfully!!!"
-
-
 
 
