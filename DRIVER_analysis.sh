@@ -12,6 +12,10 @@
 
 # Clean up increments after done with analysis
 do_clean="TRUE"
+# Keep ensemble-mean increments for this many most-recent hourly cycles
+# when cleaning older cycle directories. Current-cycle ensemble-mean files
+# are preserved separately for verification.
+clean_ensmean_retention_cycles=24
 
 # Paths to local installs
 RDASApp=/lfs/h2/emc/da/noscrub/samuel.degelia/RDASApp_redist_fv3io/RDASApp
@@ -136,6 +140,7 @@ getkfyaml='${getkfyaml}'
 fixsimple='${fixsimple}'
 COMOUT='${currdir}/logs'
 do_clean='${do_clean}'
+clean_ensmean_retention_cycles='${clean_ensmean_retention_cycles}'
 EOF
 
 if [ -d ${bufrdir} ]; then
