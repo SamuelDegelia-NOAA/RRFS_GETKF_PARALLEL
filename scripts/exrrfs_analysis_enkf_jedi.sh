@@ -318,7 +318,7 @@ if [ ${do_clean} == "TRUE" ]; then
     echo "WARNING: unable to parse cycle timestamp ${YYYYMMDD}${HH}; skipping older-cycle ensemble-mean cleanup"
   else
     cutoff_cycle=$(date -u -d "@$((current_cycle_epoch - retention_cycles * 3600))" +%Y%m%d%H)
-    echo "Cleaning ensemble-mean increment files for cycles <= ${cutoff_cycle} (retention_cycles=${retention_cycles})"
+    echo "Removing ensemble-mean increment files from cycles <= ${cutoff_cycle} (keeping last ${retention_cycles} hourly cycles)"
     shopt -s nullglob
     for old_cycle_dir in "${baserundir}"/getkf.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]; do
       old_cycle=${old_cycle_dir##*.}
@@ -333,4 +333,3 @@ fi
 
 
 echo "JEDI-EnKF PROCESS completed successfully!!!"
-
