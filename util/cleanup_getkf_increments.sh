@@ -26,6 +26,11 @@ yyyymmdd="$3"
 hh="$4"
 retention_cycles="${5:-24}"
 
+if [[ ! -d "${anldir}" ]]; then
+  echo "WARNING: analysis directory does not exist: ${anldir}; skipping cleanup"
+  exit 0
+fi
+
 # Current-cycle cleanup: keep ensemble-mean increments for verification,
 # remove only member-specific increment and prepdbz files.
 rm -f "${anldir}"/mem*/*nc
