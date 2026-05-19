@@ -59,7 +59,7 @@ echo "Removing ensemble-mean increment files from cycles <= ${cutoff_cycle} (kee
 shopt -s nullglob
 for old_cycle_dir in "${baserundir}"/getkf.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]; do
   old_cycle=${old_cycle_dir##*.}
-  if [[ "${old_cycle}" =~ ^[0-9]{10}$ ]] && [[ "${old_cycle}" < "${cutoff_cycle}" || "${old_cycle}" == "${cutoff_cycle}" ]]; then
+  if [[ "${old_cycle}" =~ ^[0-9]{10}$ ]] && ((10#${old_cycle} <= 10#${cutoff_cycle})); then
     rm -f "${old_cycle_dir}"/inc_jedi*nc
   fi
 done
