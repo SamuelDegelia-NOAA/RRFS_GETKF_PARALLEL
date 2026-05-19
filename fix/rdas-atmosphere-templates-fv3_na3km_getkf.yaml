@@ -62,7 +62,7 @@ obs_distribution_localizations:
     lengthscale: 300e3
 override_obs_distribution_localizations:
   override: true
-  mrms_refl:
+  refl10cm:
     obs_distribution:
       name: Halo
       halo size: 18e3
@@ -83,10 +83,10 @@ driver_save_posterior_ensemble_increments: true
 
 # Model things
 # ------------
-fv3lam_nml: input_lam_C3463_NP60X40.nml
+fv3lam_nml: input_lam_C3463_NP32X60.nml
 atmosphere_npz_ges: 65
-atmosphere_layout_x: 60
-atmosphere_layout_y: 40
+atmosphere_layout_x: 32
+atmosphere_layout_y: 60
 atmosphere_ntiles: 1
 atmosphere_io_layout_x: 1
 atmosphere_io_layout_y: 1

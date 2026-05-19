@@ -42,10 +42,16 @@ export FI_MR_CACHE_MAX_COUNT=0
 export MPICH_ENV_DISPLAY=1
 export MPICH_OFI_STARTUP_CONNECT=1
 export MPICH_OFI_VERBOSE=1
-export MPICH_MPIIO_HINTS='*.tile1.nc:romio_cb_read=disable,*.sfc_data.nc:romio_cb_read=disable,*.phy_data.nc:romio_cb_read=disable,*.fv_*.res.nc:romio_cb_write=enable,*.sfc_data.nc:romio_cb_write=enable'
+export MPICH_MPIIO_HINTS='*.tile1.nc:romio_cb_read=disable,*.sfc_data.nc:romio_cb_read=disable,*.phy_data.nc:romio_cb_read=disable,*.fv_*.res.nc:romio_cb_write=disable,*.sfc_data.nc:romio_cb_write=disable'
 export OMP_STACKSIZE=500M
 export OMP_NUM_THREADS=1 #${TPP_RUN_ANALYSIS}
-APRUN="mpirun -n $(( PBS_NP * PBS_NUM_NODES )) -ppn ${PBS_NP} --cpu-bind core --depth 1"
+
+# Compute depth
+export ntasks=$( wc -l $PBS_NODEFILE | awk '{print $1}')
+export ppn=$(grep -c $(head -1 $PBS_NODEFILE) $PBS_NODEFILE)
+export depth=$(( 128 / $ppn ))
+export nodes=$(( $ntasks / $ppn ))
+APRUN="mpirun -n ${ntasks} -ppn ${ppn} --cpu-bind core --depth ${depth}"
 
 #
 #-----------------------------------------------------------------------
@@ -90,7 +96,7 @@ for imem in  $(seq 1 $nens); do
   ln -snf ${bkpath}/${suffix}fv_core.res.tile1.nc       data/inputs/${memcharv0}/fv_core.res.tile1.nc
   ln -snf ${bkpath}/${suffix}fv_tracer.res.tile1.nc     data/inputs/${memcharv0}/fv_tracer.res.tile1.nc
   ln -snf ${bkpath}/${suffix}sfc_data.nc                data/inputs/${memcharv0}/sfc_data.nc
-  ln -snf ${bkpath}/${suffix}phy_data.nc              data/inputs/${memcharv0}/phy_data.nc
+  ln -snf ${bkpath}/${suffix}phy_data.nc                data/inputs/${memcharv0}/phy_data.nc
   ln -snf ${bkpath}/${suffix}fv_srf_wnd.res.tile1.nc    data/inputs/${memcharv0}/fv_srf_wnd.res.tile1.nc
   ln -snf ${bkpath}/${suffix}coupler.res                data/inputs/${memcharv0}/coupler.res
 
@@ -202,6 +208,20 @@ sed -i 's/water_vapor_mixing_ratio_wrt_moist_air_at_2m/#water_vapor_mixing_ratio
 # Turn off all jdiag outputs
 sed -i '/^[[:space:]]*obsdataout:/,+6 s/^/#/' "${jedi_yaml}"
 
+# Set additional I/O options from Dan Kokron's branch
+sed -i '/^background:/,/^[^[:space:]]/ s/^\([[:space:]]*filetype: fms restart\)$/\1\
+      regional restart: true/' "${jedi_yaml}"
+sed -i '/^output increment:/,/^[^[:space:]]/ s/^\([[:space:]]*filetype: fms restart\)$/\1\
+  regional restart: true\
+  lustre stripe size: 4194304\
+  write into existing files: false\
+  default output resolution: 32bit/' "${jedi_yaml}"
+sed -i '/^output ensemble increments:/,/^[^[:space:]]/ s/^\([[:space:]]*filetype: fms restart\)$/\1\
+  regional restart: true\
+  lustre stripe size: 4194304\
+  write into existing files: false\
+  default output resolution: 32bit/' "${jedi_yaml}"
+
 #
 #-----------------------------------------------------------------------
 #
@@ -235,32 +255,16 @@ cp ${fixsimple}/input_lam* .
 
 #
 #-----------------------------------------------------------------------
-# Restripe the output directory for faster analysis writing
+# Create the output directories for the analyses (no more restriping)
 #-----------------------------------------------------------------------
 #
 
-if [ ${output_ens} == "TRUE" ]; then
 
-  if [ "${PREDEF_GRID_NAME}" == "RRFS_NA_3km" ]; then
-    stripesize=30
-  else
-    stripesize=8
-  fi
+if [ ${output_ens} == "TRUE" ]; then
 
   for imem in  $(seq 1 $nens); do
     memcharv0="mem"$(printf %03i $imem)
     mkdir ${memcharv0}
-    cd "${memcharv0}"
-    for f in inc_jedi.fv_core.res.nc \
-             inc_jedi.fv_srf_wnd.res.nc \
-             inc_jedi.fv_tracer.res.nc \
-             inc_jedi.phy_data.nc \
-             inc_jedi.sfc_data.nc
-    do
-      rm -f "$f"
-      lfs setstripe --stripe-count ${stripesize} --stripe-size 1048576 --pool disk "$f"
-    done
-    cd ..
   done
 
 fi

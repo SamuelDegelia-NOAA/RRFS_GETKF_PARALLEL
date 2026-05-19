@@ -14,7 +14,7 @@
 do_clean="TRUE"
 
 # Paths to local installs
-RDASApp=/lfs/h2/emc/da/noscrub/samuel.degelia/RDASApp_redist_iodafix/RDASApp
+RDASApp=/lfs/h2/emc/da/noscrub/samuel.degelia/RDASApp_redist_fv3io/RDASApp
 rrfsworkflow=/lfs/h2/emc/da/noscrub/samuel.degelia/rrfs-workflow_na3km/rrfs-workflow
 baserundir=/lfs/h2/emc/stmp/samuel.degelia/GETKF_PARALLEL
 
@@ -70,8 +70,8 @@ BUFR_LOG="bufr.log"
 
 # GETKF analysis
 GETKF_JOB_NAME="na3km_getkf"
-GETKF_SELECT="60:mpiprocs=40:ompthreads=1:ncpus=40"
-GETKF_WALLTIME="01:00:00"
+GETKF_SELECT="60:mpiprocs=32:ompthreads=1:ncpus=128"
+GETKF_WALLTIME="00:30:00"
 GETKF_PLACE="vscatter"
 GETKF_LOG="getkf.log"
 
