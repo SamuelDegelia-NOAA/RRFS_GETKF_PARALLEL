@@ -310,21 +310,27 @@ if [ ${do_clean} == "TRUE" ]; then
     echo "WARNING: clean_ensmean_retention_cycles='${retention_cycles}' is invalid; using 24"
     retention_cycles=24
   fi
-  current_cycle_epoch=$(date -u -d "${YYYYMMDD:0:4}-${YYYYMMDD:4:2}-${YYYYMMDD:6:2} ${HH}:00:00" +%s)
-  cutoff_cycle=$(date -u -d "@$((current_cycle_epoch - retention_cycles * 3600))" +%Y%m%d%H)
-  echo "Cleaning ensemble-mean increment files for cycles <= ${cutoff_cycle} (retention_cycles=${retention_cycles})"
-  shopt -s nullglob
-  for old_cycle_dir in "${baserundir}"/getkf.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]; do
-    old_cycle=${old_cycle_dir##*.}
-    if [[ "${old_cycle}" =~ ^[0-9]{10}$ ]] && [[ "${old_cycle}" -le "${cutoff_cycle}" ]]; then
-      rm -f "${old_cycle_dir}"/inc_jedi*nc
-    fi
-  done
-  shopt -u nullglob
+  if ! [[ "${YYYYMMDD}" =~ ^[0-9]{8}$ && "${HH}" =~ ^[0-9]{2}$ ]]; then
+    echo "WARNING: invalid cycle timestamp YYYYMMDD='${YYYYMMDD}' HH='${HH}'; skipping older-cycle ensemble-mean cleanup"
+  elif [[ -z "${baserundir:-}" ]]; then
+    echo "WARNING: baserundir is not set; skipping older-cycle ensemble-mean cleanup"
+  elif ! current_cycle_epoch=$(date -u -d "${YYYYMMDD:0:4}-${YYYYMMDD:4:2}-${YYYYMMDD:6:2} ${HH}:00:00" +%s); then
+    echo "WARNING: unable to parse cycle timestamp ${YYYYMMDD}${HH}; skipping older-cycle ensemble-mean cleanup"
+  else
+    cutoff_cycle=$(date -u -d "@$((current_cycle_epoch - retention_cycles * 3600))" +%Y%m%d%H)
+    echo "Cleaning ensemble-mean increment files for cycles <= ${cutoff_cycle} (retention_cycles=${retention_cycles})"
+    shopt -s nullglob
+    for old_cycle_dir in "${baserundir}"/getkf.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]; do
+      old_cycle=${old_cycle_dir##*.}
+      if [[ "${old_cycle}" =~ ^[0-9]{10}$ ]] && ((10#${old_cycle} <= 10#${cutoff_cycle})); then
+        rm -f "${old_cycle_dir}"/inc_jedi*nc
+      fi
+    done
+    shopt -u nullglob
+  fi
 
 fi
 
 
 echo "JEDI-EnKF PROCESS completed successfully!!!"
-
 
