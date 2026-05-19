@@ -297,37 +297,8 @@ mv errfile errfile_jedi_enkf
 #-----------------------------------------------------------------------
 #
 if [ ${do_clean} == "TRUE" ]; then
-
-  # Current-cycle cleanup: keep ensemble-mean increments for verification,
-  # remove only member-specific increment and prepdbz files.
-  rm -f mem*/*nc
-  rm -f data/inputs/mem*/*prepdbz
-
-  # Older-cycle cleanup: remove ensemble-mean increments once they are
-  # outside the retention window.
-  retention_cycles=${clean_ensmean_retention_cycles:-24}
-  if ! [[ "${retention_cycles}" =~ ^[0-9]+$ ]] || ((retention_cycles < 1)); then
-    echo "WARNING: clean_ensmean_retention_cycles='${retention_cycles}' is invalid; using 24"
-    retention_cycles=24
-  fi
-  if ! [[ "${YYYYMMDD}" =~ ^[0-9]{8}$ && "${HH}" =~ ^[0-9]{2}$ ]]; then
-    echo "WARNING: invalid cycle timestamp YYYYMMDD='${YYYYMMDD}' HH='${HH}'; skipping older-cycle ensemble-mean cleanup"
-  elif [[ -z "${baserundir:-}" ]]; then
-    echo "WARNING: baserundir is not set; skipping older-cycle ensemble-mean cleanup"
-  elif ! current_cycle_epoch=$(date -u -d "${YYYYMMDD:0:4}-${YYYYMMDD:4:2}-${YYYYMMDD:6:2} ${HH}:00:00" +%s); then
-    echo "WARNING: unable to parse cycle timestamp ${YYYYMMDD}${HH}; skipping older-cycle ensemble-mean cleanup"
-  else
-    cutoff_cycle=$(date -u -d "@$((current_cycle_epoch - retention_cycles * 3600))" +%Y%m%d%H)
-    echo "Removing ensemble-mean increment files from cycles <= ${cutoff_cycle} (keeping last ${retention_cycles} hourly cycles)"
-    shopt -s nullglob
-    for old_cycle_dir in "${baserundir}"/getkf.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]; do
-      old_cycle=${old_cycle_dir##*.}
-      if [[ "${old_cycle}" =~ ^[0-9]{10}$ ]] && ((10#${old_cycle} <= 10#${cutoff_cycle})); then
-        rm -f "${old_cycle_dir}"/inc_jedi*nc
-      fi
-    done
-    shopt -u nullglob
-  fi
+  cleanup_script="$(cd "$(dirname "$0")/.." && pwd)/util/cleanup_getkf_increments.sh"
+  bash "${cleanup_script}" "${anldir}" "${baserundir}" "${YYYYMMDD}" "${HH}" "${clean_ensmean_retention_cycles:-24}"
 
 fi
 
