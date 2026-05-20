@@ -193,7 +193,7 @@ resolve_cycle_enspath() {
 prepbufr_file_for_cycle() {
     local cycle="$1"
     if ! [[ "${cycle}" =~ ^[0-9]{10}$ ]]; then
-        log "ERROR: Invalid cycle format for prepbufr path derivation: ${cycle}"
+        log "ERROR: Invalid cycle format for prepbufr path derivation: ${cycle} (expected YYYYMMDDHH)"
         return 1
     fi
     local yyyymmdd="${cycle:0:8}"
@@ -367,11 +367,11 @@ if ! prepbufr_file=$(prepbufr_file_for_cycle "${next_cycle}"); then
     exit 1
 fi
 if [[ ! -f "${prepbufr_file}" ]]; then
-    log "Prepbufr file not available yet for cycle ${next_cycle}: ${prepbufr_file}. Will retry on next cron run."
+    log "PREPBUFR file not available yet for cycle ${next_cycle}: ${prepbufr_file}. Will retry on next cron run."
     release_dispatch_lock
     exit 0
 fi
-log "Prepbufr file is present for cycle ${next_cycle}: ${prepbufr_file}"
+log "PREPBUFR file is present for cycle ${next_cycle}: ${prepbufr_file}"
 
 if ! acquire_cycle_lock "${next_cycle}"; then
     log "Could not acquire per-cycle lock for ${next_cycle}; another process may have claimed it."
