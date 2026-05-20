@@ -14,6 +14,7 @@ driver_script=${DRIVER_SCRIPT:-${script_dir}/DRIVER_analysis.sh}
 cycle_lock_file=""          # path of the per-cycle lock file we hold
 dispatch_lock_acquired=0    # 1 while we hold the dispatcher lock
 ensemble_size=${ENSEMBLE_SIZE:-30}
+prepbufr_obsbase=${PREPBUFR_OBSBASE:-/lfs/h1/ops/prod/com/obsproc/v1.2}
 
 source "${script_dir}/util/driver_analysis_common.sh"
 
@@ -189,6 +190,13 @@ resolve_cycle_enspath() {
     fi
 }
 
+prepbufr_file_for_cycle() {
+    local cycle="$1"
+    local yyyymmdd="${cycle:0:8}"
+    local hh="${cycle:8:2}"
+    echo "${prepbufr_obsbase}/rrfs.${yyyymmdd}/rrfs.t${hh}z.prepbufr.tm00"
+}
+
 get_successful_cycles() {
     # Outputs all cycles marked SUCCESS in the history file, one per line
     awk '$2=="SUCCESS"{print $1}' "${cycle_history}"
@@ -348,6 +356,14 @@ if ! validate_restart_files "${next_enspath}"; then
     exit 0
 fi
 log "All required files are present for cycle ${next_cycle}"
+
+prepbufr_file=$(prepbufr_file_for_cycle "${next_cycle}")
+if [[ ! -f "${prepbufr_file}" ]]; then
+    log "Prepbufr file not available yet for cycle ${next_cycle}: ${prepbufr_file}. Will retry on next cron run."
+    release_dispatch_lock
+    exit 0
+fi
+log "Prepbufr file is present for cycle ${next_cycle}: ${prepbufr_file}"
 
 if ! acquire_cycle_lock "${next_cycle}"; then
     log "Could not acquire per-cycle lock for ${next_cycle}; another process may have claimed it."
