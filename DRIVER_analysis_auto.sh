@@ -192,6 +192,9 @@ resolve_cycle_enspath() {
 
 prepbufr_file_for_cycle() {
     local cycle="$1"
+    if ! [[ "${cycle}" =~ ^[0-9]{10}$ ]]; then
+        return 1
+    fi
     local yyyymmdd="${cycle:0:8}"
     local hh="${cycle:8:2}"
     echo "${prepbufr_obsbase}/rrfs.${yyyymmdd}/rrfs.t${hh}z.prepbufr.tm00"
@@ -357,7 +360,11 @@ if ! validate_restart_files "${next_enspath}"; then
 fi
 log "All required files are present for cycle ${next_cycle}"
 
-prepbufr_file=$(prepbufr_file_for_cycle "${next_cycle}")
+if ! prepbufr_file=$(prepbufr_file_for_cycle "${next_cycle}"); then
+    log "ERROR: Cannot derive prepbufr file path for invalid cycle ${next_cycle}"
+    release_dispatch_lock
+    exit 1
+fi
 if [[ ! -f "${prepbufr_file}" ]]; then
     log "Prepbufr file not available yet for cycle ${next_cycle}: ${prepbufr_file}. Will retry on next cron run."
     release_dispatch_lock
