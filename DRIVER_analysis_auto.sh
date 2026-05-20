@@ -193,6 +193,7 @@ resolve_cycle_enspath() {
 prepbufr_file_for_cycle() {
     local cycle="$1"
     if ! [[ "${cycle}" =~ ^[0-9]{10}$ ]]; then
+        log "ERROR: Invalid cycle format for prepbufr path derivation: ${cycle}"
         return 1
     fi
     local yyyymmdd="${cycle:0:8}"
