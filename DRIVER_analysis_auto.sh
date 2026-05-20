@@ -362,7 +362,7 @@ fi
 log "All required files are present for cycle ${next_cycle}"
 
 if ! prepbufr_file=$(prepbufr_file_for_cycle "${next_cycle}"); then
-    log "ERROR: Cannot derive prepbufr file path for invalid cycle ${next_cycle}"
+    log "ERROR: Aborting cycle ${next_cycle} due to invalid cycle format."
     release_dispatch_lock
     exit 1
 fi
