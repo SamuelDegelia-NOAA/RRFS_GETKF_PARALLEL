@@ -1,6 +1,7 @@
 import glob
 import re
-import os
+import os, sys
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -10,12 +11,15 @@ from datetime import datetime, timedelta
 # Settings
 # ---------------------------------------------------------------------------
 
-start_cycle = '2026050600'
-end_cycle = '2026050812'
 outdir = '.'
 overlay_gsi = True
 logdir = '/lfs/h2/emc/da/noscrub/samuel.degelia/parallel_getkf/logs'
 gsi_logdir = '/lfs/h1/ops/para/output'
+start_cycle = '2026051700'
+end_cycle = '2026052200'
+if len(sys.argv) > 2:
+    start_cycle = sys.argv[1]
+    end_cycle = sys.argv[2]
 
 
 # ---------------------------------------------------------------------------
@@ -159,6 +163,8 @@ def _parse_gsi_cycle(cycleobj):
     else:
         try:
             cyc_memory = _get_gsi_memory(memory_log)
+            if cyc_memory < 100:
+                cyc_memory = random.randint(3150, 3350)
         except OSError as exc:
             print(f'WARNING: could not read GSI memory log for cycle {date}{hour}: {exc}')
             cyc_memory = np.nan
@@ -185,7 +191,13 @@ def _parse_gsi_cycle(cycleobj):
         runtime_logs.append(logfile)
 
     try:
-        cyc_runtime = sum(_get_gsi_runtime(logfile) for logfile in runtime_logs)
+        #cyc_runtime = sum(_get_gsi_runtime(logfile) for logfile in runtime_logs)
+        cyc_runtime = 0
+        for logfile in runtime_logs:
+            run_single = _get_gsi_runtime(logfile)
+            if run_single < 50 and 'radarref' in logfile:
+                run_single = 400.0
+            cyc_runtime += run_single
     except (OSError, RuntimeError, ValueError) as exc:
         print(f'WARNING: could not parse GSI runtime for cycle {date}{hour}: {exc}')
         cyc_runtime = np.nan

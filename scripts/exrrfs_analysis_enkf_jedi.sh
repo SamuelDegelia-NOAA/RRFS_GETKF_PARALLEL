@@ -166,7 +166,8 @@ JCBLIB=${RDASAPP_DIR}/sorc/jcb/src
 export PYTHONPATH="${JCBLIB}:${WXFLOWLIB}:${PYIODALIB}:${PYTHONPATH}"
 
 cp ${getkfyaml} .
-cp ${USHdir}/run_jcb.py .
+cp ${fixsimple}/gsd*txt .
+cp ${fixsimple}/../util/run_jcb.py .
 JCB_CONFIG_ENKF=$(basename $getkfyaml)
 
 #sed - rdas-atmosphere-templates.yaml
@@ -200,10 +201,6 @@ sed -i 's/^ *distribution:$/      use data frame container: true\
 # JCB does not set linear observer so we need to change that
 sed -i 's/use linear observer: false/use linear observer: true/' "${jedi_yaml}"
 sed -i 's/do test prints: true/do test prints: false/' "${jedi_yaml}"
-
-# Not yet including workaround to add 2mq in field meta data
-sed -i 's/- water_vapor_mixing_ratio_wrt_moist_air_at_2m/#- water_vapor_mixing_ratio_wrt_moist_air_at_2m/' "${jedi_yaml}"
-sed -i 's/water_vapor_mixing_ratio_wrt_moist_air_at_2m/#water_vapor_mixing_ratio_wrt_moist_air_at_2m/' "${jedi_yaml}"
 
 # Turn off all jdiag outputs
 sed -i '/^[[:space:]]*obsdataout:/,+6 s/^/#/' "${jedi_yaml}"
