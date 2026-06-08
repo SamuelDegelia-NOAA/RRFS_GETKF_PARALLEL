@@ -21,10 +21,10 @@ files=(
 for file in "${files[@]}"; do
 
   # Extract variable names declared as double
-  vars=$(ncks -m "$file" | awk '/^ *double /{gsub("double",""); gsub("\\(.*",""); gsub(";",""); print $1}')
+  mapfile -t vars < <(ncks -m "$file" | awk '/^ *double /{gsub("double",""); gsub("\\(.*",""); gsub(";",""); print $1}')
 
   # Convert each variable to float (from double)
-  for v in $vars; do
+  for v in "${vars[@]}"; do
     ncap2 -O -s "${v}=float(${v})" "$file" "$file"
   done
 done

@@ -31,6 +31,7 @@ module load intel udunits szip hdf5 netcdf gsl nco
 set -x
 
 do_radar=${DO_ENKF_RADAR_REF:-FALSE}
+UA2U_HDF5_LIB_PATH=${UA2U_HDF5_LIB_PATH:-/apps/ops/test/spack-stack-nco-1.9/oneapi/2024.2.1/hdf5-1.14.3-umtw5lv/lib}
 post_work_root=${anldir}/post_process_increments_work
 post_out_root=${anldir}/fv3lam_ready_restarts
 mkdir -p "${post_work_root}" "${post_out_root}"
@@ -76,7 +77,7 @@ process_member() {
 
   pushd "${workdir}" >/dev/null
   mv inc_jedi.fv_core.res.nc agrid_inc_jedi.fv_core.res.nc
-  LD_LIBRARY_PATH="/apps/ops/test/spack-stack-nco-1.9/oneapi/2024.2.1/hdf5-1.14.3-umtw5lv/lib:${LD_LIBRARY_PATH}" \
+  LD_LIBRARY_PATH="${UA2U_HDF5_LIB_PATH}:${LD_LIBRARY_PATH}" \
     ./rdas_ua2u.x ua_update_u --in_grid=fv3_grid_spec --in_file=agrid_inc_jedi.fv_core.res.nc --out_file=inc_jedi.fv_core.res.nc
 
   if [[ ! -s inc_jedi.fv_core.res.nc ]]; then
@@ -109,7 +110,7 @@ seq 1 "${nens}" | parallel -j "${nens}" --halt soon,fail=1 process_member
 
 echo "Post-processed FV3-LAM-ready restarts available under ${post_out_root}"
 
-if [ "${do_clean}" == "TRUE" ]; then
+if [ "${do_clean:-FALSE}" == "TRUE" ]; then
   bash "${cleanup_script}" "${anldir}" "${baserundir}" "${YYYYMMDD}" "${HH}" "${clean_ensmean_retention_cycles:-24}"
 fi
 
