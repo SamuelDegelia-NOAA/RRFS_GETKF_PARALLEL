@@ -38,6 +38,7 @@ post_out_root=${anldir}/fv3lam_ready_restarts
 mkdir -p "${post_work_root}" "${post_out_root}"
 parallel_jobs=${POST_INCS_PARALLEL_JOBS:-${nens}}
 if ! [[ "${parallel_jobs}" =~ ^[0-9]+$ ]] || (( parallel_jobs < 1 )); then
+  echo "WARNING: invalid POST_INCS_PARALLEL_JOBS='${parallel_jobs}', using 1"
   parallel_jobs=1
 fi
 if [[ "${PBS_NP:-}" =~ ^[0-9]+$ ]] && (( PBS_NP > 0 )) && (( parallel_jobs > PBS_NP )); then
