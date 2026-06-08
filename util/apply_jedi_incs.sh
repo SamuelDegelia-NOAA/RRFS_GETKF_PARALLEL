@@ -20,7 +20,7 @@ files=(
 
 for file in "${files[@]}"; do
 
-  # Extract variable names declared as double
+  # Extract variable names declared as double from `ncks -m` metadata output.
   mapfile -t vars < <(ncks -m "$file" | awk '/^ *double /{gsub("double",""); gsub("\\(.*",""); gsub(";",""); print $1}')
 
   # Convert each variable to float (from double)

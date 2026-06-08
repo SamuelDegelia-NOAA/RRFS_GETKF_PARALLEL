@@ -31,16 +31,17 @@ module load intel udunits szip hdf5 netcdf gsl nco
 set -x
 
 do_radar=${DO_ENKF_RADAR_REF:-FALSE}
+# Allow overriding this path externally if the default module stack changes.
 UA2U_HDF5_LIB_PATH=${UA2U_HDF5_LIB_PATH:-/apps/ops/test/spack-stack-nco-1.9/oneapi/2024.2.1/hdf5-1.14.3-umtw5lv/lib}
 post_work_root=${anldir}/post_process_increments_work
 post_out_root=${anldir}/fv3lam_ready_restarts
 mkdir -p "${post_work_root}" "${post_out_root}"
 parallel_jobs=${POST_INCS_PARALLEL_JOBS:-${nens}}
-if [[ "${parallel_jobs}" =~ ^[0-9]+$ ]] && [[ "${PBS_NP:-}" =~ ^[0-9]+$ ]] && (( PBS_NP > 0 )) && (( parallel_jobs > PBS_NP )); then
-  parallel_jobs=${PBS_NP}
-fi
 if ! [[ "${parallel_jobs}" =~ ^[0-9]+$ ]] || (( parallel_jobs < 1 )); then
   parallel_jobs=1
+fi
+if [[ "${PBS_NP:-}" =~ ^[0-9]+$ ]] && (( PBS_NP > 0 )) && (( parallel_jobs > PBS_NP )); then
+  parallel_jobs=${PBS_NP}
 fi
 
 process_member() {
@@ -85,7 +86,10 @@ process_member() {
   pushd "${workdir}" >/dev/null
   mv inc_jedi.fv_core.res.nc agrid_inc_jedi.fv_core.res.nc
   LD_LIBRARY_PATH="${UA2U_HDF5_LIB_PATH}:${LD_LIBRARY_PATH}" \
-    ./rdas_ua2u.x ua_update_u --in_grid=fv3_grid_spec --in_file=agrid_inc_jedi.fv_core.res.nc --out_file=inc_jedi.fv_core.res.nc
+    ./rdas_ua2u.x ua_update_u \
+      --in_grid=fv3_grid_spec \
+      --in_file=agrid_inc_jedi.fv_core.res.nc \
+      --out_file=inc_jedi.fv_core.res.nc
 
   if [[ ! -s inc_jedi.fv_core.res.nc ]]; then
     echo "ERROR: inc_jedi.fv_core.res.nc missing or empty after rdas_ua2u.x for ${memcharv0}"
