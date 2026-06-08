@@ -71,9 +71,9 @@ process_member() {
     fi
   done
 
-  ln -snf "${bkgdir}/fv_core.res.tile1.nc" "${workdir}/fv_core.res.tile1.nc"
-  ln -snf "${bkgdir}/fv_tracer.res.tile1.nc" "${workdir}/fv_tracer.res.tile1.nc"
-  ln -snf "${bkgdir}/phy_data.nc" "${workdir}/phy_data.nc"
+  cp -f "${bkgdir}/fv_core.res.tile1.nc" "${workdir}/fv_core.res.tile1.nc"
+  cp -f "${bkgdir}/fv_tracer.res.tile1.nc" "${workdir}/fv_tracer.res.tile1.nc"
+  cp -f "${bkgdir}/phy_data.nc" "${workdir}/phy_data.nc"
 
   cp -f "${incdir}/inc_jedi.fv_core.res.nc" "${workdir}/inc_jedi.fv_core.res.nc"
   cp -f "${incdir}/inc_jedi.fv_tracer.res.nc" "${workdir}/inc_jedi.fv_tracer.res.nc"
