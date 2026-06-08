@@ -35,6 +35,13 @@ UA2U_HDF5_LIB_PATH=${UA2U_HDF5_LIB_PATH:-/apps/ops/test/spack-stack-nco-1.9/onea
 post_work_root=${anldir}/post_process_increments_work
 post_out_root=${anldir}/fv3lam_ready_restarts
 mkdir -p "${post_work_root}" "${post_out_root}"
+parallel_jobs=${POST_INCS_PARALLEL_JOBS:-${nens}}
+if [[ "${parallel_jobs}" =~ ^[0-9]+$ ]] && [[ "${PBS_NP:-}" =~ ^[0-9]+$ ]] && (( PBS_NP > 0 )) && (( parallel_jobs > PBS_NP )); then
+  parallel_jobs=${PBS_NP}
+fi
+if ! [[ "${parallel_jobs}" =~ ^[0-9]+$ ]] || (( parallel_jobs < 1 )); then
+  parallel_jobs=1
+fi
 
 process_member() {
   local imem="$1"
@@ -106,7 +113,7 @@ process_member() {
 export anldir post_work_root post_out_root FIX_GSI PREDEF_GRID_NAME EXECdir do_radar apply_incs_script
 export -f process_member
 
-seq 1 "${nens}" | parallel -j "${nens}" --halt soon,fail=1 process_member
+seq 1 "${nens}" | parallel -j "${parallel_jobs}" --halt soon,fail=1 process_member
 
 echo "Post-processed FV3-LAM-ready restarts available under ${post_out_root}"
 

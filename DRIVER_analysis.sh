@@ -13,6 +13,7 @@
 
 # Clean up increments after done with analysis
 do_clean="TRUE"
+do_post_process_increments="${DO_POST_PROCESS_INCREMENTS:-TRUE}"
 # Keep ensemble-mean increments for this many most-recent hourly cycles
 # when cleaning older cycle directories. Current-cycle ensemble-mean files
 # are preserved separately for verification.
@@ -151,7 +152,7 @@ getkfyaml='${getkfyaml}'
 fixsimple='${fixsimple}'
 COMOUT='${currdir}/logs'
 do_clean='${do_clean}'
-do_post_process_increments='TRUE'
+do_post_process_increments='${do_post_process_increments}'
 clean_ensmean_retention_cycles='${clean_ensmean_retention_cycles}'
 EOF
 
@@ -214,29 +215,42 @@ job3=$(bash "${submit}" \
     -W "depend=afterok:${job1}:${job2}" \
     "${script_dir}/scripts/exrrfs_analysis_enkf_jedi.sh")
 
-# Post-process member increments after GETKF analysis succeeds
-job4=$(bash "${submit}" \
-    -N "${POST_INCS_JOB_NAME}" \
-    -A "${PBS_ACCOUNT}" \
-    -q "${PBS_QUEUE}" \
-    -l "select=${POST_INCS_SELECT}" \
-    -l "walltime=${POST_INCS_WALLTIME}" \
-    -l "place=${POST_INCS_PLACE}" \
-    -o "${POST_INCS_LOG}" \
-    -v "envfile=${envfile}" \
-    -v "PBS_NP=${POST_INCS_PBS_NP},PBS_NUM_NODES=${POST_INCS_PBS_NUM_NODES}" \
-    -W "depend=afterok:${job3}" \
-    "${script_dir}/scripts/exrrfs_post_process_increments.sh")
+job4=""
+if [ "${do_post_process_increments}" == "TRUE" ]; then
+  # Post-process member increments after GETKF analysis succeeds
+  job4=$(bash "${submit}" \
+      -N "${POST_INCS_JOB_NAME}" \
+      -A "${PBS_ACCOUNT}" \
+      -q "${PBS_QUEUE}" \
+      -l "select=${POST_INCS_SELECT}" \
+      -l "walltime=${POST_INCS_WALLTIME}" \
+      -l "place=${POST_INCS_PLACE}" \
+      -o "${POST_INCS_LOG}" \
+      -v "envfile=${envfile}" \
+      -v "PBS_NP=${POST_INCS_PBS_NP},PBS_NUM_NODES=${POST_INCS_PBS_NUM_NODES}" \
+      -W "depend=afterok:${job3}" \
+      "${script_dir}/scripts/exrrfs_post_process_increments.sh")
+fi
 
-echo "Submitted jobs: radar=${job1} bufr=${job2} getkf=${job3} post_incs=${job4}"
+echo "Submitted jobs: radar=${job1} bufr=${job2} getkf=${job3} post_incs=${job4:-SKIPPED}"
+
+job_list=("${job1}" "${job2}" "${job3}")
+if [[ -n "${job4}" ]]; then
+  job_list+=("${job4}")
+fi
 
 # Wait for all jobs to complete
-while qstat_output=$(qstat "${job1}" "${job2}" "${job3}" "${job4}" 2>/dev/null || true); do
-  if [[ "${qstat_output}" != *"${job1}"* && \
-        "${qstat_output}" != *"${job2}"* && \
-        "${qstat_output}" != *"${job3}"* && \
-        "${qstat_output}" != *"${job4}"* ]]; then
+while true; do
+  qstat_output=$(qstat "${job_list[@]}" 2>/dev/null || true)
+  jobs_remaining=0
+  for jid in "${job_list[@]}"; do
+    if [[ "${qstat_output}" == *"${jid}"* ]]; then
+      jobs_remaining=1
       break
+    fi
+  done
+  if [[ "${jobs_remaining}" -eq 0 ]]; then
+    break
   fi
   sleep 10
 done
