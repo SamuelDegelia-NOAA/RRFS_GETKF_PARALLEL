@@ -5,6 +5,7 @@
 #   1. Run bufr2ioda.x to generate IODA observations including radar obs
 #   2. Set up analysis run directory using saved fix files
 #   3. Run GETKF analysis
+#   4. Post-process GETKF member increments into FV3-LAM-ready restart files
 
 ################
 ### Settings ###
@@ -79,6 +80,13 @@ GETKF_WALLTIME="00:30:00"
 GETKF_PLACE="vscatter"
 GETKF_LOG="getkf.log"
 
+# Post-process member increments into FV3-LAM-ready restart files
+POST_INCS_JOB_NAME="na3km_post_process_incs"
+POST_INCS_SELECT="10:mpiprocs=1:ncpus=1:mem=20G"
+POST_INCS_WALLTIME="00:45:00"
+POST_INCS_PLACE="vscatter"
+POST_INCS_LOG="post_incs.log"
+
 # Get number of nodes and tasks to pass into the scripts
 RADAR_PBS_NP=$(echo "${RADAR_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
 RADAR_PBS_NUM_NODES=$(echo "${RADAR_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
@@ -86,6 +94,8 @@ BUFR_PBS_NP=$(echo "${BUFR_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
 BUFR_PBS_NUM_NODES=$(echo "${BUFR_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
 GETKF_PBS_NP=$(echo "${GETKF_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
 GETKF_PBS_NUM_NODES=$(echo "${GETKF_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
+POST_INCS_PBS_NP=$(echo "${POST_INCS_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
+POST_INCS_PBS_NUM_NODES=$(echo "${POST_INCS_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
 
 # NOTE: the enspath contains RESTART files for the next forecast hour
 # So enkfrrfs.20260416/15 contains the restart files for 2026041616
@@ -115,6 +125,7 @@ mkdir -p "${baserundir}"
 RADAR_LOG="logs/mrms_${YYYYMMDD}${HH}.log"
 BUFR_LOG="logs/bufr_${YYYYMMDD}${HH}.log"
 GETKF_LOG="logs/getkf_${YYYYMMDD}${HH}.log"
+POST_INCS_LOG="logs/post_incs_${YYYYMMDD}${HH}.log"
 
 # Export the variables we will need in other tasks.
 # Use a cycle-unique absolute path so concurrent cycles cannot overwrite each other.
@@ -140,6 +151,7 @@ getkfyaml='${getkfyaml}'
 fixsimple='${fixsimple}'
 COMOUT='${currdir}/logs'
 do_clean='${do_clean}'
+do_post_process_increments='TRUE'
 clean_ensmean_retention_cycles='${clean_ensmean_retention_cycles}'
 EOF
 
@@ -202,14 +214,28 @@ job3=$(bash "${submit}" \
     -W "depend=afterok:${job1}:${job2}" \
     "${script_dir}/scripts/exrrfs_analysis_enkf_jedi.sh")
 
+# Post-process member increments after GETKF analysis succeeds
+job4=$(bash "${submit}" \
+    -N "${POST_INCS_JOB_NAME}" \
+    -A "${PBS_ACCOUNT}" \
+    -q "${PBS_QUEUE}" \
+    -l "select=${POST_INCS_SELECT}" \
+    -l "walltime=${POST_INCS_WALLTIME}" \
+    -l "place=${POST_INCS_PLACE}" \
+    -o "${POST_INCS_LOG}" \
+    -v "envfile=${envfile}" \
+    -v "PBS_NP=${POST_INCS_PBS_NP},PBS_NUM_NODES=${POST_INCS_PBS_NUM_NODES}" \
+    -W "depend=afterok:${job3}" \
+    "${script_dir}/scripts/exrrfs_post_process_increments.sh")
 
-echo "Submitted jobs: radar=${job1} bufr=${job2} getkf=${job3}"
+echo "Submitted jobs: radar=${job1} bufr=${job2} getkf=${job3} post_incs=${job4}"
 
 # Wait for all jobs to complete
-while qstat_output=$(qstat "${job1}" "${job2}" "${job3}" 2>/dev/null || true); do
+while qstat_output=$(qstat "${job1}" "${job2}" "${job3}" "${job4}" 2>/dev/null || true); do
   if [[ "${qstat_output}" != *"${job1}"* && \
         "${qstat_output}" != *"${job2}"* && \
-        "${qstat_output}" != *"${job3}"* ]]; then
+        "${qstat_output}" != *"${job3}"* && \
+        "${qstat_output}" != *"${job4}"* ]]; then
       break
   fi
   sleep 10
