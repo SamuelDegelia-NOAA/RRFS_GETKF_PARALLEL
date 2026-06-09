@@ -77,10 +77,10 @@ process_member() {
     fi
   done
 
-  cp -f "${incdir}/inc_jedi.fv_core.res.nc" "${workdir}/inc_jedi.fv_core.res.nc"
-  cp -f "${incdir}/inc_jedi.fv_tracer.res.nc" "${workdir}/inc_jedi.fv_tracer.res.nc"
+  ln -snf "${incdir}/inc_jedi.fv_core.res.nc" "${workdir}/inc_jedi.fv_core.res.nc"
+  ln -snf "${incdir}/inc_jedi.fv_tracer.res.nc" "${workdir}/inc_jedi.fv_tracer.res.nc"
   if [[ "${do_radar}" == "TRUE" && -f "${incdir}/inc_jedi.phy_data.nc" ]]; then
-    cp -f "${incdir}/inc_jedi.phy_data.nc" "${workdir}/inc_jedi.phy_data.nc"
+    ln -snf "${incdir}/inc_jedi.phy_data.nc" "${workdir}/inc_jedi.phy_data.nc"
   fi
 
   ln -snf "${FIX_GSI}/${PREDEF_GRID_NAME}/fv3_grid_spec" "${workdir}/fv3_grid_spec"

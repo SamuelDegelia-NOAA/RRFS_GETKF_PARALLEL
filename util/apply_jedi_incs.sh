@@ -28,13 +28,15 @@ files=(
 )
 
 for file in "${files[@]}"; do
+  work_file="work_${file}"
+  ncks -O "$file" "$work_file"
 
   # Extract variable names declared as double from `ncks -m` metadata output.
-  mapfile -t vars < <(ncks -m "$file" | awk '/^ *double /{gsub("double",""); gsub("\\(.*",""); gsub(";",""); print $1}')
+  mapfile -t vars < <(ncks -m "$work_file" | awk '/^ *double /{gsub("double",""); gsub("\\(.*",""); gsub(";",""); print $1}')
 
   # Convert each variable to float (from double)
   for v in "${vars[@]}"; do
-    "${NCAP_BIN}" -O -s "${v}=float(${v})" "$file" "$file"
+    "${NCAP_BIN}" -O -s "${v}=float(${v})" "$work_file" "$work_file"
   done
 done
 
@@ -42,18 +44,16 @@ done
 # 2. Core background + increments
 #####################################################################
 BKG=${dynfile}
-INC=inc_jedi.fv_core.res.nc
+INC=work_inc_jedi.fv_core.res.nc
 OUT=fv_core_analysis.res.tile1.nc
 
 # Make Time a record dimension (unlimited dimension)
 ncks --mk_rec_dmn Time "$INC" tmp_inc.nc
-mv tmp_inc.nc "$INC"
 
 # Copy background
 ncks -O "$BKG" tmp_bkg.nc
 
 # Make a temporary increment file with renamed variables
-ncks -O "$INC" tmp_inc.nc
 ncrename -v u,u_inc tmp_inc.nc
 ncrename -v v,v_inc tmp_inc.nc
 ncrename -v T,T_inc tmp_inc.nc
@@ -86,18 +86,16 @@ rm -f tmp_inc.nc tmp_bkg.nc
 # 3. Tracer background + increments
 #####################################################################
 BKGtr=${trafile}
-INCtr=inc_jedi.fv_tracer.res.nc
+INCtr=work_inc_jedi.fv_tracer.res.nc
 OUTtr=fv_tracer_analysis.res.tile1.nc
 
 # Make Time a record dimension (unlimited dimension)
 ncks --mk_rec_dmn Time "$INCtr" tmp_inctr.nc
-mv tmp_inctr.nc "$INCtr"
 
 # Copy background
 ncks -O "$BKGtr" tmp_bkgtr.nc
 
 # Make a temporary increment file with renamed variables
-ncks -O "$INCtr" tmp_inctr.nc
 ncrename -v sphum,sphum_inc tmp_inctr.nc
 ncrename -v o3mr,o3mr_inc   tmp_inctr.nc
 if [[ "${do_radar}" = "TRUE" ]]; then
@@ -143,13 +141,11 @@ if [[ "${do_radar}" = "TRUE" ]]; then
 
   # Make Time a record dimension (unlimited dimension)
   ncks --mk_rec_dmn Time "$INCph" tmp_incph.nc
-  mv tmp_incph.nc "$INCph"
 
   # Copy background
   ncks -O "$BKGph" tmp_bkgph.nc
 
   # Make a temporary increment file with renamed variables
-  ncks -O "$INCph" tmp_incph.nc
   ncrename -v ref_f3d,ref_f3d_inc tmp_incph.nc
 
   # Append increment vars into OUT
@@ -167,3 +163,5 @@ if [[ "${do_radar}" = "TRUE" ]]; then
   rm -f tmp_incph.nc tmp_bkgph.nc
 
 fi
+
+rm -f work_inc_jedi.fv_core.res.nc work_inc_jedi.fv_tracer.res.nc
