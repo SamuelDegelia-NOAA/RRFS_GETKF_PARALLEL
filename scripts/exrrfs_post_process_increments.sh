@@ -14,6 +14,7 @@ apply_incs_script="$(cd "$(dirname "$0")/.." && pwd)/util/apply_jedi_incs.sh"
 cleanup_script="$(cd "$(dirname "$0")/.." && pwd)/util/cleanup_getkf_increments.sh"
 member_id="${POST_INCS_MEMBER:-}"
 cleanup_only="${POST_INCS_CLEANUP_ONLY:-FALSE}"
+run_cleanup="${POST_INCS_RUN_CLEANUP:-${do_clean:-FALSE}}"
 
 if [[ ! -f "${apply_incs_script}" ]]; then
   echo "ERROR: apply_jedi_incs utility script not found: ${apply_incs_script}"
@@ -33,6 +34,10 @@ module load intel udunits szip hdf5 netcdf gsl nco
 set -x
 
 do_radar=${DO_ENKF_RADAR_REF:-FALSE}
+if [[ "${run_cleanup}" != "TRUE" && "${run_cleanup}" != "FALSE" ]]; then
+  echo "WARNING: invalid cleanup toggle '${run_cleanup}', using FALSE"
+  run_cleanup="FALSE"
+fi
 # Allow overriding this path externally if the default module stack changes.
 UA2U_HDF5_LIB_PATH=${UA2U_HDF5_LIB_PATH:-/apps/ops/test/spack-stack-nco-1.9/oneapi/2024.2.1/hdf5-1.14.3-umtw5lv/lib}
 ua2u_timeout_sec=${POST_INCS_UA2U_TIMEOUT_SEC:-0}
@@ -45,7 +50,7 @@ post_out_root=${anldir}/fv3lam_ready_restarts
 mkdir -p "${post_work_root}" "${post_out_root}"
 
 if [[ "${cleanup_only}" == "TRUE" ]]; then
-  if [ "${do_clean:-FALSE}" == "TRUE" ]; then
+  if [ "${run_cleanup}" == "TRUE" ]; then
     bash "${cleanup_script}" "${anldir}" "${baserundir}" "${YYYYMMDD}" "${HH}" "${clean_ensmean_retention_cycles:-24}"
   fi
   echo "POST-PROCESS-INCREMENTS cleanup-only task completed successfully!!!"
@@ -179,7 +184,7 @@ fi
 
 echo "Post-processed FV3-LAM-ready restarts available under ${post_out_root}"
 
-if [ "${do_clean:-FALSE}" == "TRUE" ]; then
+if [ "${run_cleanup}" == "TRUE" ]; then
   bash "${cleanup_script}" "${anldir}" "${baserundir}" "${YYYYMMDD}" "${HH}" "${clean_ensmean_retention_cycles:-24}"
 fi
 

@@ -235,7 +235,7 @@ if [ "${do_post_process_increments}" == "TRUE" ]; then
         -o "${member_log}" \
         -v "envfile=${envfile}" \
         -v "PBS_NP=${POST_INCS_PBS_NP},PBS_NUM_NODES=${POST_INCS_PBS_NUM_NODES}" \
-        -v "POST_INCS_MEMBER=${imem},do_clean=FALSE" \
+        -v "POST_INCS_MEMBER=${imem},POST_INCS_RUN_CLEANUP=FALSE" \
         -W "depend=afterok:${job3}" \
         "${script_dir}/scripts/exrrfs_post_process_increments.sh")
     post_member_jobs+=("${member_job}")
@@ -253,7 +253,7 @@ if [ "${do_post_process_increments}" == "TRUE" ]; then
           -l "place=excl" \
           -o "${POST_INCS_LOG}" \
           -v "envfile=${envfile}" \
-          -v "POST_INCS_CLEANUP_ONLY=TRUE,do_clean=TRUE,PBS_NP=1,PBS_NUM_NODES=1" \
+          -v "POST_INCS_CLEANUP_ONLY=TRUE,POST_INCS_RUN_CLEANUP=TRUE,PBS_NP=1,PBS_NUM_NODES=1" \
           -W "depend=afterok:${post_dep}" \
           "${script_dir}/scripts/exrrfs_post_process_increments.sh")
     fi
