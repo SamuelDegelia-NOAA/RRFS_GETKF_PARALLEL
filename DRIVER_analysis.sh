@@ -220,7 +220,7 @@ job5=""
 post_member_jobs=()
 if [ "${do_post_process_increments}" == "TRUE" ]; then
   # Post-process member increments after GETKF analysis succeeds using one PBS job per member.
-  nens=$(find "${enspath}" -maxdepth 1 -type d -name 'mem[0-9][0-9][0-9]' | wc -l)
+  nens=$(find "${enspath}" -maxdepth 1 -type d -name 'mem[0-9]*' | wc -l)
   if ! [[ "${nens}" =~ ^[0-9]+$ ]] || (( nens < 1 )); then
     echo "ERROR: unable to determine ensemble size from ${enspath}"
     exit 1

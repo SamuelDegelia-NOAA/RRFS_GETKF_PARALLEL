@@ -50,7 +50,7 @@ post_out_root=${anldir}/fv3lam_ready_restarts
 mkdir -p "${post_work_root}" "${post_out_root}"
 
 if [[ "${cleanup_only}" == "TRUE" ]]; then
-  if [ "${run_cleanup}" == "TRUE" ]; then
+  if [[ "${run_cleanup}" == "TRUE" ]]; then
     bash "${cleanup_script}" "${anldir}" "${baserundir}" "${YYYYMMDD}" "${HH}" "${clean_ensmean_retention_cycles:-24}"
   fi
   echo "POST-PROCESS-INCREMENTS cleanup-only task completed successfully!!!"
@@ -184,7 +184,7 @@ fi
 
 echo "Post-processed FV3-LAM-ready restarts available under ${post_out_root}"
 
-if [ "${run_cleanup}" == "TRUE" ]; then
+if [[ "${run_cleanup}" == "TRUE" ]]; then
   bash "${cleanup_script}" "${anldir}" "${baserundir}" "${YYYYMMDD}" "${HH}" "${clean_ensmean_retention_cycles:-24}"
 fi
 
