@@ -26,7 +26,7 @@ cd ${anldir}
 set +x
 source ${rrfsworkflow}/versions/run.ver
 module use ${rrfsworkflow}/modulefiles/tasks/wcoss2
-module load run_enkfupdt_jedi.local
+module load run_fcst.local
 module load intel udunits szip hdf5 netcdf gsl nco
 set -x
 
