@@ -10,6 +10,15 @@ dynfile=${2}
 trafile=${3}
 phyfile=${4}
 
+if command -v ncap2 >/dev/null 2>&1; then
+  NCAP_BIN=ncap2
+elif command -v ncap >/dev/null 2>&1; then
+  NCAP_BIN=ncap
+else
+  echo "ERROR: Neither ncap2 nor ncap is available in PATH."
+  exit 1
+fi
+
 #####################################################################
 # 1. Convert doubles to floats
 #####################################################################
@@ -25,7 +34,7 @@ for file in "${files[@]}"; do
 
   # Convert each variable to float (from double)
   for v in "${vars[@]}"; do
-    ncap2 -O -s "${v}=float(${v})" "$file" "$file"
+    "${NCAP_BIN}" -O -s "${v}=float(${v})" "$file" "$file"
   done
 done
 
@@ -65,7 +74,7 @@ if [[ "${do_radar}" = "TRUE" ]]; then
   addstr="${addstr} W=W+W_inc;"
   varlist="${varlist},W_inc"
 fi
-ncap2 -O -s "${addstr}" tmp_bkg.nc "$OUT"
+"${NCAP_BIN}" -O -s "${addstr}" tmp_bkg.nc "$OUT"
 
 # Remove increment variables
 ncks -O -x -v ${varlist} "$OUT" "$OUT"
@@ -114,7 +123,7 @@ if [[ "${do_radar}" = "TRUE" ]]; then
   varlist="${varlist},ice_wat_inc,liq_wat_inc,rainwat_inc,snowwat_inc,graupel_inc"
 fi
 
-ncap2 -O \
+"${NCAP_BIN}" -O \
   -s "${addstr}" \
   tmp_bkgtr.nc "$OUTtr"
 
@@ -147,7 +156,7 @@ if [[ "${do_radar}" = "TRUE" ]]; then
   ncks -A tmp_incph.nc tmp_bkgph.nc
 
   # Perform addition in place
-  ncap2 -O \
+  "${NCAP_BIN}" -O \
     -s "ref_f3d=ref_f3d+ref_f3d_inc;" \
     tmp_bkgph.nc "$OUTph"
 
