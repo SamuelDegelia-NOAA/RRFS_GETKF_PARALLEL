@@ -77,7 +77,8 @@ process_member() {
     fi
   done
 
-  ln -snf "${incdir}/inc_jedi.fv_core.res.nc" "${workdir}/inc_jedi.fv_core.res.nc"
+  rm -f "${workdir}/agrid_inc_jedi.fv_core.res.nc" "${workdir}/inc_jedi.fv_core.res.nc"
+  cp -Lf "${incdir}/inc_jedi.fv_core.res.nc" "${workdir}/agrid_inc_jedi.fv_core.res.nc"
   ln -snf "${incdir}/inc_jedi.fv_tracer.res.nc" "${workdir}/inc_jedi.fv_tracer.res.nc"
   if [[ "${do_radar}" == "TRUE" && -f "${incdir}/inc_jedi.phy_data.nc" ]]; then
     ln -snf "${incdir}/inc_jedi.phy_data.nc" "${workdir}/inc_jedi.phy_data.nc"
@@ -87,7 +88,6 @@ process_member() {
   cp -f "${EXECdir}/bin/rdas_ua2u.x" "${workdir}/rdas_ua2u.x"
 
   pushd "${workdir}" >/dev/null
-  mv inc_jedi.fv_core.res.nc agrid_inc_jedi.fv_core.res.nc
   LD_LIBRARY_PATH="${UA2U_HDF5_LIB_PATH}:${LD_LIBRARY_PATH}" \
     ./rdas_ua2u.x ua_update_u \
       --in_grid=fv3_grid_spec \
