@@ -41,8 +41,14 @@ if ! [[ "${parallel_jobs}" =~ ^[0-9]+$ ]] || (( parallel_jobs < 1 )); then
   echo "WARNING: invalid POST_INCS_PARALLEL_JOBS='${parallel_jobs}', using 1"
   parallel_jobs=1
 fi
-if [[ "${PBS_NP:-}" =~ ^[0-9]+$ ]] && (( PBS_NP > 0 )) && (( parallel_jobs > PBS_NP )); then
-  parallel_jobs=${PBS_NP}
+if [[ "${PBS_NP:-}" =~ ^[0-9]+$ ]] && (( PBS_NP > 0 )); then
+  pbs_parallel_limit=${PBS_NP}
+  if [[ "${PBS_NUM_NODES:-}" =~ ^[0-9]+$ ]] && (( PBS_NUM_NODES > 0 )); then
+    pbs_parallel_limit=$(( PBS_NP * PBS_NUM_NODES ))
+  fi
+  if (( parallel_jobs > pbs_parallel_limit )); then
+    parallel_jobs=${pbs_parallel_limit}
+  fi
 fi
 
 process_member() {
