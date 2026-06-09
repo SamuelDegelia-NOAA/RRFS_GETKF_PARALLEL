@@ -12,6 +12,8 @@ FIX_GSI=${rrfsworkflow}/fix/gsi
 EXECdir=${rrfsworkflow}/exec
 apply_incs_script="$(cd "$(dirname "$0")/.." && pwd)/util/apply_jedi_incs.sh"
 cleanup_script="$(cd "$(dirname "$0")/.." && pwd)/util/cleanup_getkf_increments.sh"
+member_id="${POST_INCS_MEMBER:-}"
+cleanup_only="${POST_INCS_CLEANUP_ONLY:-FALSE}"
 
 if [[ ! -f "${apply_incs_script}" ]]; then
   echo "ERROR: apply_jedi_incs utility script not found: ${apply_incs_script}"
@@ -41,19 +43,13 @@ fi
 post_work_root=${anldir}/post_process_increments_work
 post_out_root=${anldir}/fv3lam_ready_restarts
 mkdir -p "${post_work_root}" "${post_out_root}"
-parallel_jobs=${POST_INCS_PARALLEL_JOBS:-${nens}}
-if ! [[ "${parallel_jobs}" =~ ^[0-9]+$ ]] || (( parallel_jobs < 1 )); then
-  echo "WARNING: invalid POST_INCS_PARALLEL_JOBS='${parallel_jobs}', using 1"
-  parallel_jobs=1
-fi
-if [[ "${PBS_NP:-}" =~ ^[0-9]+$ ]] && (( PBS_NP > 0 )); then
-  pbs_parallel_limit=${PBS_NP}
-  if [[ "${PBS_NUM_NODES:-}" =~ ^[0-9]+$ ]] && (( PBS_NUM_NODES > 0 )); then
-    pbs_parallel_limit=$(( PBS_NP * PBS_NUM_NODES ))
+
+if [[ "${cleanup_only}" == "TRUE" ]]; then
+  if [ "${do_clean:-FALSE}" == "TRUE" ]; then
+    bash "${cleanup_script}" "${anldir}" "${baserundir}" "${YYYYMMDD}" "${HH}" "${clean_ensmean_retention_cycles:-24}"
   fi
-  if (( parallel_jobs > pbs_parallel_limit )); then
-    parallel_jobs=${pbs_parallel_limit}
-  fi
+  echo "POST-PROCESS-INCREMENTS cleanup-only task completed successfully!!!"
+  exit 0
 fi
 
 process_member() {
@@ -157,7 +153,29 @@ process_member() {
 export anldir post_work_root post_out_root FIX_GSI PREDEF_GRID_NAME EXECdir do_radar apply_incs_script
 export -f process_member
 
-seq 1 "${nens}" | parallel -j "${parallel_jobs}" --line-buffer --halt soon,fail=1 process_member
+if [[ -n "${member_id}" ]]; then
+  if ! [[ "${member_id}" =~ ^[0-9]+$ ]] || (( member_id < 1 || member_id > nens )); then
+    echo "ERROR: invalid POST_INCS_MEMBER='${member_id}' for nens=${nens}"
+    exit 1
+  fi
+  process_member "${member_id}"
+else
+  parallel_jobs=${POST_INCS_PARALLEL_JOBS:-${nens}}
+  if ! [[ "${parallel_jobs}" =~ ^[0-9]+$ ]] || (( parallel_jobs < 1 )); then
+    echo "WARNING: invalid POST_INCS_PARALLEL_JOBS='${parallel_jobs}', using 1"
+    parallel_jobs=1
+  fi
+  if [[ "${PBS_NP:-}" =~ ^[0-9]+$ ]] && (( PBS_NP > 0 )); then
+    pbs_parallel_limit=${PBS_NP}
+    if [[ "${PBS_NUM_NODES:-}" =~ ^[0-9]+$ ]] && (( PBS_NUM_NODES > 0 )); then
+      pbs_parallel_limit=$(( PBS_NP * PBS_NUM_NODES ))
+    fi
+    if (( parallel_jobs > pbs_parallel_limit )); then
+      parallel_jobs=${pbs_parallel_limit}
+    fi
+  fi
+  seq 1 "${nens}" | parallel -j "${parallel_jobs}" --line-buffer --halt soon,fail=1 process_member
+fi
 
 echo "Post-processed FV3-LAM-ready restarts available under ${post_out_root}"
 

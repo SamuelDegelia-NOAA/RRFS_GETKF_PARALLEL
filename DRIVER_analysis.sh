@@ -83,7 +83,7 @@ GETKF_LOG="getkf.log"
 
 # Post-process member increments into FV3-LAM-ready restart files
 POST_INCS_JOB_NAME="na3km_post_process_incs"
-POST_INCS_SELECT="10:mpiprocs=1:ncpus=1:mem=20G"
+POST_INCS_SELECT="1:mpiprocs=1:ncpus=1:mem=20G"
 POST_INCS_WALLTIME="00:45:00"
 POST_INCS_PLACE="vscatter"
 POST_INCS_LOG="post_incs.log"
@@ -216,26 +216,59 @@ job3=$(bash "${submit}" \
     "${script_dir}/scripts/exrrfs_analysis_enkf_jedi.sh")
 
 job4=""
+job5=""
+post_member_jobs=()
 if [ "${do_post_process_increments}" == "TRUE" ]; then
-  # Post-process member increments after GETKF analysis succeeds
-  job4=$(bash "${submit}" \
-      -N "${POST_INCS_JOB_NAME}" \
-      -A "${PBS_ACCOUNT}" \
-      -q "${PBS_QUEUE}" \
-      -l "select=${POST_INCS_SELECT}" \
-      -l "walltime=${POST_INCS_WALLTIME}" \
-      -l "place=${POST_INCS_PLACE}" \
-      -o "${POST_INCS_LOG}" \
-      -v "envfile=${envfile}" \
-      -v "PBS_NP=${POST_INCS_PBS_NP},PBS_NUM_NODES=${POST_INCS_PBS_NUM_NODES}" \
-      -W "depend=afterok:${job3}" \
-      "${script_dir}/scripts/exrrfs_post_process_increments.sh")
+  # Post-process member increments after GETKF analysis succeeds using one PBS job per member.
+  nens=${nens:-30}
+  for imem in $(seq 1 "${nens}"); do
+    mem3=$(printf "%03i" "${imem}")
+    member_log="logs/post_incs_${YYYYMMDD}${HH}_mem${mem3}.log"
+    member_job_name="${POST_INCS_JOB_NAME}_m${mem3}"
+    member_job=$(bash "${submit}" \
+        -N "${member_job_name}" \
+        -A "${PBS_ACCOUNT}" \
+        -q "${PBS_QUEUE}" \
+        -l "select=${POST_INCS_SELECT}" \
+        -l "walltime=${POST_INCS_WALLTIME}" \
+        -l "place=${POST_INCS_PLACE}" \
+        -o "${member_log}" \
+        -v "envfile=${envfile}" \
+        -v "PBS_NP=${POST_INCS_PBS_NP},PBS_NUM_NODES=${POST_INCS_PBS_NUM_NODES}" \
+        -v "POST_INCS_MEMBER=${imem},do_clean=FALSE" \
+        -W "depend=afterok:${job3}" \
+        "${script_dir}/scripts/exrrfs_post_process_increments.sh")
+    post_member_jobs+=("${member_job}")
+  done
+  if [ "${#post_member_jobs[@]}" -gt 0 ]; then
+    job4="${post_member_jobs[0]}"
+    post_dep=$(IFS=:; echo "${post_member_jobs[*]}")
+    if [ "${do_clean}" == "TRUE" ]; then
+      job5=$(bash "${submit}" \
+          -N "${POST_INCS_JOB_NAME}_cleanup" \
+          -A "${PBS_ACCOUNT}" \
+          -q "${PBS_QUEUE}" \
+          -l "select=1:mpiprocs=1:ncpus=1" \
+          -l "walltime=00:10:00" \
+          -l "place=excl" \
+          -o "${POST_INCS_LOG}" \
+          -v "envfile=${envfile}" \
+          -v "POST_INCS_CLEANUP_ONLY=TRUE,do_clean=TRUE,PBS_NP=1,PBS_NUM_NODES=1" \
+          -W "depend=afterok:${post_dep}" \
+          "${script_dir}/scripts/exrrfs_post_process_increments.sh")
+    fi
+  fi
 fi
 
-echo "Submitted jobs: radar=${job1} bufr=${job2} getkf=${job3} post_incs=${job4:-SKIPPED}"
+echo "Submitted jobs: radar=${job1} bufr=${job2} getkf=${job3} post_incs_first=${job4:-SKIPPED} post_incs_cleanup=${job5:-SKIPPED}"
 
 job_list=("${job1}" "${job2}" "${job3}")
-if [[ -n "${job4}" ]]; then
+if [[ "${#post_member_jobs[@]}" -gt 0 ]]; then
+  job_list+=("${post_member_jobs[@]}")
+fi
+if [[ -n "${job5}" ]]; then
+  job_list+=("${job5}")
+elif [[ -n "${job4}" ]]; then
   job_list+=("${job4}")
 fi
 
