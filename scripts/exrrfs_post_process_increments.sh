@@ -33,6 +33,11 @@ set -x
 do_radar=${DO_ENKF_RADAR_REF:-FALSE}
 # Allow overriding this path externally if the default module stack changes.
 UA2U_HDF5_LIB_PATH=${UA2U_HDF5_LIB_PATH:-/apps/ops/test/spack-stack-nco-1.9/oneapi/2024.2.1/hdf5-1.14.3-umtw5lv/lib}
+ua2u_timeout_sec=${POST_INCS_UA2U_TIMEOUT_SEC:-0}
+if ! [[ "${ua2u_timeout_sec}" =~ ^[0-9]+$ ]]; then
+  echo "WARNING: invalid POST_INCS_UA2U_TIMEOUT_SEC='${ua2u_timeout_sec}', disabling timeout"
+  ua2u_timeout_sec=0
+fi
 post_work_root=${anldir}/post_process_increments_work
 post_out_root=${anldir}/fv3lam_ready_restarts
 mkdir -p "${post_work_root}" "${post_out_root}"
@@ -87,32 +92,64 @@ process_member() {
   ln -snf "${FIX_GSI}/${PREDEF_GRID_NAME}/fv3_grid_spec" "${workdir}/fv3_grid_spec"
   cp -f "${EXECdir}/bin/rdas_ua2u.x" "${workdir}/rdas_ua2u.x"
 
-  pushd "${workdir}" >/dev/null
-  LD_LIBRARY_PATH="${UA2U_HDF5_LIB_PATH}:${LD_LIBRARY_PATH}" \
-    ./rdas_ua2u.x ua_update_u \
-      --in_grid=fv3_grid_spec \
-      --in_file=agrid_inc_jedi.fv_core.res.nc \
-      --out_file=inc_jedi.fv_core.res.nc
+  local ua2u_log="${workdir}/rdas_ua2u.log"
+  {
+    echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] Starting rdas_ua2u.x for ${memcharv0}"
+    echo "******"
+    echo "INPUT=${workdir}/agrid_inc_jedi.fv_core.res.nc"
+    echo "OUTPUT=${workdir}/inc_jedi.fv_core.res.nc"
+    echo "POST_INCS_UA2U_TIMEOUT_SEC=${ua2u_timeout_sec}"
+  } > "${ua2u_log}"
 
-  if [[ ! -s inc_jedi.fv_core.res.nc ]]; then
-    echo "ERROR: inc_jedi.fv_core.res.nc missing or empty after rdas_ua2u.x for ${memcharv0}"
-    popd >/dev/null
+  if (( ua2u_timeout_sec > 0 )) && command -v timeout >/dev/null 2>&1; then
+    (
+      cd "${workdir}"
+      timeout "${ua2u_timeout_sec}" env LD_LIBRARY_PATH="${UA2U_HDF5_LIB_PATH}:${LD_LIBRARY_PATH:-}" \
+        ./rdas_ua2u.x ua_update_u \
+          --in_grid=fv3_grid_spec \
+          --in_file=agrid_inc_jedi.fv_core.res.nc \
+          --out_file=inc_jedi.fv_core.res.nc
+    ) >> "${ua2u_log}" 2>&1
+  else
+    (
+      cd "${workdir}"
+      env LD_LIBRARY_PATH="${UA2U_HDF5_LIB_PATH}:${LD_LIBRARY_PATH:-}" \
+        ./rdas_ua2u.x ua_update_u \
+          --in_grid=fv3_grid_spec \
+          --in_file=agrid_inc_jedi.fv_core.res.nc \
+          --out_file=inc_jedi.fv_core.res.nc
+    ) >> "${ua2u_log}" 2>&1
+  fi
+  local ua2u_rc=$?
+
+  echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] rdas_ua2u.x exit code=${ua2u_rc}" >> "${ua2u_log}"
+  if (( ua2u_rc != 0 )); then
+    echo "ERROR: rdas_ua2u.x failed for ${memcharv0}; see ${ua2u_log}"
+    tail -n 50 "${ua2u_log}" || true
     return 1
   fi
 
-  "${apply_incs_script}" "${do_radar}" "${bkgdir}/fv_core.res.tile1.nc" "${bkgdir}/fv_tracer.res.tile1.nc" "${bkgdir}/phy_data.nc"
+  if [[ ! -s "${workdir}/inc_jedi.fv_core.res.nc" ]]; then
+    echo "ERROR: inc_jedi.fv_core.res.nc missing or empty after rdas_ua2u.x for ${memcharv0}"
+    tail -n 50 "${ua2u_log}" || true
+    return 1
+  fi
 
-  cp -f fv_core_analysis.res.tile1.nc "${outdir}/fv_core.res.tile1.nc"
-  cp -f fv_tracer_analysis.res.tile1.nc "${outdir}/fv_tracer.res.tile1.nc"
-  if [[ "${do_radar}" == "TRUE" && -f phy_data_analysis.nc ]]; then
-    cp -f phy_data_analysis.nc "${outdir}/phy_data.nc"
+  (
+    cd "${workdir}"
+    "${apply_incs_script}" "${do_radar}" "${bkgdir}/fv_core.res.tile1.nc" "${bkgdir}/fv_tracer.res.tile1.nc" "${bkgdir}/phy_data.nc"
+  )
+
+  cp -f "${workdir}/fv_core_analysis.res.tile1.nc" "${outdir}/fv_core.res.tile1.nc"
+  cp -f "${workdir}/fv_tracer_analysis.res.tile1.nc" "${outdir}/fv_tracer.res.tile1.nc"
+  if [[ "${do_radar}" == "TRUE" && -f "${workdir}/phy_data_analysis.nc" ]]; then
+    cp -f "${workdir}/phy_data_analysis.nc" "${outdir}/phy_data.nc"
   else
     cp -Lf "${bkgdir}/phy_data.nc" "${outdir}/phy_data.nc"
   fi
   cp -Lf "${bkgdir}/sfc_data.nc" "${outdir}/sfc_data.nc"
   cp -Lf "${bkgdir}/fv_srf_wnd.res.tile1.nc" "${outdir}/fv_srf_wnd.res.tile1.nc"
   cp -Lf "${bkgdir}/coupler.res" "${outdir}/coupler.res"
-  popd >/dev/null
 
   echo "Completed post-processing for ${memcharv0}"
 }
@@ -120,7 +157,7 @@ process_member() {
 export anldir post_work_root post_out_root FIX_GSI PREDEF_GRID_NAME EXECdir do_radar apply_incs_script
 export -f process_member
 
-seq 1 "${nens}" | parallel -j "${parallel_jobs}" --halt soon,fail=1 process_member
+seq 1 "${nens}" | parallel -j "${parallel_jobs}" --line-buffer --halt soon,fail=1 process_member
 
 echo "Post-processed FV3-LAM-ready restarts available under ${post_out_root}"
 
