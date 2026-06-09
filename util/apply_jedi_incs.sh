@@ -19,6 +19,13 @@ else
   exit 1
 fi
 
+cleanup_tmp() {
+  rm -f \
+    tmp_inc.nc tmp_bkg.nc tmp_inctr.nc tmp_bkgtr.nc tmp_incph.nc tmp_bkgph.nc \
+    work_inc_jedi.fv_core.res.nc work_inc_jedi.fv_tracer.res.nc
+}
+trap cleanup_tmp EXIT
+
 #####################################################################
 # 1. Convert doubles to floats
 #####################################################################
@@ -79,9 +86,6 @@ fi
 # Remove increment variables
 ncks -O -x -v ${varlist} "$OUT" "$OUT"
 
-# Cleanup
-rm -f tmp_inc.nc tmp_bkg.nc
-
 #####################################################################
 # 3. Tracer background + increments
 #####################################################################
@@ -128,9 +132,6 @@ fi
 # Remove increment variables
 ncks -O -x -v ${varlist} "$OUTtr" "$OUTtr"
 
-# Cleanup
-rm -f tmp_inctr.nc tmp_bkgtr.nc
-
 #####################################################################
 # 4. Physics background + increments (only for radar DA)
 #####################################################################
@@ -159,9 +160,4 @@ if [[ "${do_radar}" = "TRUE" ]]; then
   # Remove increment variables
   ncks -O -x -v ref_f3d_inc "$OUTph" "$OUTph"
 
-  # Cleanup
-  rm -f tmp_incph.nc tmp_bkgph.nc
-
 fi
-
-rm -f work_inc_jedi.fv_core.res.nc work_inc_jedi.fv_tracer.res.nc
