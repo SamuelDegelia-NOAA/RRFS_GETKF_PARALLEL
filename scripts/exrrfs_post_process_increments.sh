@@ -14,7 +14,7 @@ apply_incs_script="$(cd "$(dirname "$0")/.." && pwd)/util/apply_jedi_incs.sh"
 cleanup_script="$(cd "$(dirname "$0")/.." && pwd)/util/cleanup_getkf_increments.sh"
 member_id="${POST_INCS_MEMBER:-}"
 cleanup_only="${POST_INCS_CLEANUP_ONLY:-FALSE}"
-run_cleanup="${POST_INCS_RUN_CLEANUP:-${do_clean:-FALSE}}"
+run_cleanup="${POST_INCS_RUN_CLEANUP:-FALSE}"
 
 if [[ ! -f "${apply_incs_script}" ]]; then
   echo "ERROR: apply_jedi_incs utility script not found: ${apply_incs_script}"
