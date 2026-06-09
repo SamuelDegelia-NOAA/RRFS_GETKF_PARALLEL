@@ -77,10 +77,6 @@ process_member() {
     fi
   done
 
-  cp -f "${bkgdir}/fv_core.res.tile1.nc" "${workdir}/fv_core.res.tile1.nc"
-  cp -f "${bkgdir}/fv_tracer.res.tile1.nc" "${workdir}/fv_tracer.res.tile1.nc"
-  cp -f "${bkgdir}/phy_data.nc" "${workdir}/phy_data.nc"
-
   cp -f "${incdir}/inc_jedi.fv_core.res.nc" "${workdir}/inc_jedi.fv_core.res.nc"
   cp -f "${incdir}/inc_jedi.fv_tracer.res.nc" "${workdir}/inc_jedi.fv_tracer.res.nc"
   if [[ "${do_radar}" == "TRUE" && -f "${incdir}/inc_jedi.phy_data.nc" ]]; then
@@ -104,14 +100,14 @@ process_member() {
     return 1
   fi
 
-  "${apply_incs_script}" "${do_radar}" fv_core.res.tile1.nc fv_tracer.res.tile1.nc phy_data.nc
+  "${apply_incs_script}" "${do_radar}" "${bkgdir}/fv_core.res.tile1.nc" "${bkgdir}/fv_tracer.res.tile1.nc" "${bkgdir}/phy_data.nc"
 
   cp -f fv_core_analysis.res.tile1.nc "${outdir}/fv_core.res.tile1.nc"
   cp -f fv_tracer_analysis.res.tile1.nc "${outdir}/fv_tracer.res.tile1.nc"
   if [[ "${do_radar}" == "TRUE" && -f phy_data_analysis.nc ]]; then
     cp -f phy_data_analysis.nc "${outdir}/phy_data.nc"
   else
-    cp -Lf phy_data.nc "${outdir}/phy_data.nc"
+    cp -Lf "${bkgdir}/phy_data.nc" "${outdir}/phy_data.nc"
   fi
   cp -Lf "${bkgdir}/sfc_data.nc" "${outdir}/sfc_data.nc"
   cp -Lf "${bkgdir}/fv_srf_wnd.res.tile1.nc" "${outdir}/fv_srf_wnd.res.tile1.nc"
