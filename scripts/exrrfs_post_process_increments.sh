@@ -142,6 +142,8 @@ process_member() {
 
   (
     cd "${workdir}"
+    module purge
+    module load intel udunits szip hdf5 netcdf gsl nco
     "${apply_incs_script}" "${do_radar}" "${bkgdir}/fv_core.res.tile1.nc" "${bkgdir}/fv_tracer.res.tile1.nc" "${bkgdir}/phy_data.nc"
   )
   for f in fv_core_analysis.res.tile1.nc fv_tracer_analysis.res.tile1.nc; do
