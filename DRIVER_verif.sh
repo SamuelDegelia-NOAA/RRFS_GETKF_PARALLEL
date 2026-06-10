@@ -123,7 +123,7 @@ rm -rf ${verifdir}
 mkdir -p ${verifdir}
 mkdir -p ${savedir}
 cp ${envfile} ${verifdir}
-cp ./util/apply_jedi_incs.py ${verifdir}
+cp ./util/apply_jedi_incs_verif.py ${verifdir}
 
 
 job4=$(bash "${submit}" \
