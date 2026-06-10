@@ -144,6 +144,12 @@ process_member() {
     cd "${workdir}"
     "${apply_incs_script}" "${do_radar}" "${bkgdir}/fv_core.res.tile1.nc" "${bkgdir}/fv_tracer.res.tile1.nc" "${bkgdir}/phy_data.nc"
   )
+  for f in fv_core_analysis.res.tile1.nc fv_tracer_analysis.res.tile1.nc; do
+    if [[ ! -s "${workdir}/${f}" ]]; then
+      echo "ERROR: Missing expected post-processed file for ${memcharv0}: ${workdir}/${f}"
+      return 1
+    fi
+  done
 
   mv -f "${workdir}/fv_core_analysis.res.tile1.nc" "${outdir}/fv_core.res.tile1.nc"
   mv -f "${workdir}/fv_tracer_analysis.res.tile1.nc" "${outdir}/fv_tracer.res.tile1.nc"

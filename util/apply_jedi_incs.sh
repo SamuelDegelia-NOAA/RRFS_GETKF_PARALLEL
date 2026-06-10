@@ -71,8 +71,13 @@ BKGtr=${trafile}
 INCtr=inc_jedi.fv_tracer.res.nc
 OUTtr=fv_tracer_analysis.res.tile1.nc
 
-# Make Time a record dimension (unlimited dimension)
-ncks --mk_rec_dmn Time "$INCtr" tmp_inctr.nc
+# Make Time a record dimension (unlimited dimension) on needed tracer increment vars.
+tracer_vars=(sphum o3mr)
+if [[ "${do_radar}" = "TRUE" ]]; then
+  tracer_vars+=(ice_wat liq_wat rainwat snowwat graupel)
+fi
+tracer_vars_csv=$(IFS=,; echo "${tracer_vars[*]}")
+ncks --mk_rec_dmn Time -v "${tracer_vars_csv}" "$INCtr" tmp_inctr.nc
 
 # Copy background
 ncks -O "$BKGtr" tmp_bkgtr.nc
@@ -103,9 +108,11 @@ for v in "${tracer_inc_vars[@]}"; do
     if (( ${#inc_dim_arr[@]} == ${#bkg_dim_arr[@]} )); then
       for i in "${!inc_dim_arr[@]}"; do
         if [[ "${inc_dim_arr[$i]}" != "${bkg_dim_arr[$i]}" ]]; then
-          if ! ncks -m tmp_inctr.nc | grep -qE "^[[:space:]]*${bkg_dim_arr[$i]}[[:space:]]*="; then
-            ncrename -d "${inc_dim_arr[$i]},${bkg_dim_arr[$i]}" tmp_inctr.nc
+          if ncks -m tmp_inctr.nc | grep -qE "^[[:space:]]*${bkg_dim_arr[$i]}[[:space:]]*="; then
+            "${NCAP_BIN}" -O -s "${v}[${bkg_dims}]=${v};" tmp_inctr.nc tmp_inctr.nc
+            break
           fi
+          ncrename -d "${inc_dim_arr[$i]},${bkg_dim_arr[$i]}" tmp_inctr.nc
         fi
       done
     fi
