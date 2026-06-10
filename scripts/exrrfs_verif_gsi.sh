@@ -308,7 +308,7 @@ module purge
 module use ${RDASApp}/modulefiles
 module load RDAS/wcoss2.intel
 set -x
-if ( ! time ( python3 -u ./apply_jedi_incs.py "FALSE" ${dynfile} ${trafile} ${phyfile}) ); then
+if ( ! time ( python3 -u ./apply_jedi_incs_verif.py "FALSE" ${dynfile} ${trafile} ${phyfile}) ); then
   echo "Failed applying JEDI increments"
   exit 6
 else
