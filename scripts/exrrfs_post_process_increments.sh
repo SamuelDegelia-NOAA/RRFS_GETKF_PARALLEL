@@ -37,7 +37,7 @@ module load run_fcst.local
 module load intel udunits szip hdf5 netcdf gsl nco
 set -x
 
-do_radar=${DO_ENKF_RADAR_REF:-FALSE}
+do_radar=${DO_ENKF_RADAR_REF:-TRUE}
 if [[ "${run_cleanup}" != "TRUE" && "${run_cleanup}" != "FALSE" ]]; then
   echo "WARNING: invalid cleanup toggle '${run_cleanup}', using FALSE"
   run_cleanup="FALSE"

@@ -94,13 +94,8 @@ if [[ "${do_radar}" = "TRUE" ]]; then
 fi
 
 # Harmonize known tracer increment dimension names
-if ncdump -h tmp_inctr.nc | grep -q 'yaxis_2 = '; then
-  ncrename -d yaxis_2,yaxis_1 tmp_inctr.nc
-fi
-
-if ncdump -h tmp_inctr.nc | grep -q 'xaxis_2 = '; then
-  ncrename -d xaxis_2,xaxis_1 tmp_inctr.nc
-fi
+ncrename -d .yaxis_2,yaxis_1 tmp_inctr.nc
+ncrename -d .xaxis_2,xaxis_1 tmp_inctr.nc
 
 # Ensure Time is record/unlimited on increment file if present
 if ncdump -h tmp_inctr.nc | grep -q 'Time = '; then
@@ -126,8 +121,6 @@ if [[ "${do_radar}" = "TRUE" ]]; then
   varlist="${varlist},ice_wat_inc,liq_wat_inc,rainwat_inc,snowwat_inc,graupel_inc"
 fi
 
-ncks -m -v sphum tmp_bkgtr.nc
-ncks -m -v sphum_inc tmp_bkgtr.nc
 "${NCAP_BIN}" -O \
   -s "${addstr}" \
   tmp_bkgtr.nc "$OUTtr"
@@ -138,29 +131,30 @@ ncks -O -x -v ${varlist} "$OUTtr" "$OUTtr"
 #####################################################################
 # 3. Physics background + increments (only for radar DA)
 #####################################################################
-if [[ "${do_radar}" = "TRUE" ]]; then
-  BKGph=${phyfile}
-  INCph=inc_jedi.phy_data.nc
-  OUTph=phy_data_analysis.nc
 
-  # Make Time a record dimension (unlimited dimension)
-  ncks --mk_rec_dmn Time "$INCph" tmp_incph.nc
-
-  # Copy background
-  ncks -O "$BKGph" tmp_bkgph.nc
-
-  # Make a temporary increment file with renamed variables
-  ncrename -v ref_f3d,ref_f3d_inc tmp_incph.nc
-
-  # Append increment vars into OUT
-  ncks -A tmp_incph.nc tmp_bkgph.nc
-
-  # Perform addition in place
-  "${NCAP_BIN}" -O \
-    -s "ref_f3d=ref_f3d+ref_f3d_inc;" \
-    tmp_bkgph.nc "$OUTph"
-
-  # Remove increment variables
-  ncks -O -x -v ref_f3d_inc "$OUTph" "$OUTph"
-
-fi
+#if [[ "${do_radar}" = "TRUE" ]]; then
+#  BKGph=${phyfile}
+#  INCph=inc_jedi.phy_data.nc
+#  OUTph=phy_data_analysis.nc
+#
+#  # Make Time a record dimension (unlimited dimension)
+#  ncks --mk_rec_dmn Time "$INCph" tmp_incph.nc
+#
+#  # Copy background
+#  ncks -O "$BKGph" tmp_bkgph.nc
+#
+#  # Make a temporary increment file with renamed variables
+#  ncrename -v ref_f3d,ref_f3d_inc tmp_incph.nc
+#
+#  # Append increment vars into OUT
+#  ncks -A tmp_incph.nc tmp_bkgph.nc
+#
+#  # Perform addition in place
+#  "${NCAP_BIN}" -O \
+#    -s "ref_f3d=ref_f3d+ref_f3d_inc;" \
+#    tmp_bkgph.nc "$OUTph"
+#
+#  # Remove increment variables
+#  ncks -O -x -v ref_f3d_inc "$OUTph" "$OUTph"
+#
+#fi
