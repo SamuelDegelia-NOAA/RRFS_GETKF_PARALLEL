@@ -93,14 +93,23 @@ if [[ "${do_radar}" = "TRUE" ]]; then
   ncrename -v graupel,graupel_inc  tmp_inctr.nc
 fi
 
-# Harmonize tracer increment dimension names with background
-if ncdump -h tmp_inctr.nc | grep -q 'yaxis_2 = ' && \
-   ncdump -h tmp_bkgtr.nc | grep -q 'yaxis_1 = '; then
+# Rename tracer increment variables
+ncrename -v sphum,sphum_inc tmp_inctr.nc
+ncrename -v o3mr,o3mr_inc   tmp_inctr.nc
+if [[ "${do_radar}" = "TRUE" ]]; then
+  ncrename -v ice_wat,ice_wat_inc  tmp_inctr.nc
+  ncrename -v liq_wat,liq_wat_inc  tmp_inctr.nc
+  ncrename -v rainwat,rainwat_inc  tmp_inctr.nc
+  ncrename -v snowwat,snowwat_inc  tmp_inctr.nc
+  ncrename -v graupel,graupel_inc  tmp_inctr.nc
+fi
+
+# Harmonize known tracer increment dimension names
+if ncdump -h tmp_inctr.nc | grep -q 'yaxis_2 = '; then
   ncrename -d yaxis_2,yaxis_1 tmp_inctr.nc
 fi
 
-if ncdump -h tmp_inctr.nc | grep -q 'xaxis_2 = ' && \
-   ncdump -h tmp_bkgtr.nc | grep -q 'xaxis_1 = '; then
+if ncdump -h tmp_inctr.nc | grep -q 'xaxis_2 = '; then
   ncrename -d xaxis_2,xaxis_1 tmp_inctr.nc
 fi
 
@@ -109,31 +118,12 @@ if ncdump -h tmp_inctr.nc | grep -q 'Time = '; then
   ncks --mk_rec_dmn Time -O tmp_inctr.nc tmp_inctr.nc
 fi
 
-# Align increment dimension names with background names (sizes must match).
-#tracer_inc_vars=(sphum_inc o3mr_inc)
-#if [[ "${do_radar}" = "TRUE" ]]; then
-#  tracer_inc_vars+=(ice_wat_inc liq_wat_inc rainwat_inc snowwat_inc graupel_inc)
-#fi
-#for v in "${tracer_inc_vars[@]}"; do
-#  bkg_v="${v%_inc}"
-#  inc_dims=$(ncks -m -v "${v}" tmp_inctr.nc | awk -v var="${v}" 'index($0,var"("){s=$0; sub(/.*\(/,"",s); sub(/\).*/,"",s); gsub(/[[:space:]]/,"",s); print s; exit}')
-#  bkg_dims=$(ncks -m -v "${bkg_v}" tmp_bkgtr.nc | awk -v var="${bkg_v}" 'index($0,var"("){s=$0; sub(/.*\(/,"",s); sub(/\).*/,"",s); gsub(/[[:space:]]/,"",s); print s; exit}')
-#  if [[ -n "${inc_dims}" && -n "${bkg_dims}" ]]; then
-#    IFS=',' read -r -a inc_dim_arr <<< "${inc_dims}"
-#    IFS=',' read -r -a bkg_dim_arr <<< "${bkg_dims}"
-#    if (( ${#inc_dim_arr[@]} == ${#bkg_dim_arr[@]} )); then
-#      for i in "${!inc_dim_arr[@]}"; do
-#        if [[ "${inc_dim_arr[$i]}" != "${bkg_dim_arr[$i]}" ]]; then
-#          if ncks -m tmp_inctr.nc | grep -qE "^[[:space:]]*${bkg_dim_arr[$i]}[[:space:]]*="; then
-#            "${NCAP_BIN}" -O -s "${v}[${bkg_dims}]=${v};" tmp_inctr.nc tmp_inctr.nc
-#            break
-#          fi
-#          ncrename -d "${inc_dim_arr[$i]},${bkg_dim_arr[$i]}" tmp_inctr.nc
-#        fi
-#      done
-#    fi
-#  fi
-#done
+# Append only increment vars into background
+append_vars="sphum_inc,o3mr_inc"
+if [[ "${do_radar}" = "TRUE" ]]; then
+  append_vars="${append_vars},ice_wat_inc,liq_wat_inc,rainwat_inc,snowwat_inc,graupel_inc"
+fi
+ncks -A -v "${append_vars}" tmp_inctr.nc tmp_bkgtr.nc
 
 # Append increment vars into OUT
 ncks -A tmp_inctr.nc tmp_bkgtr.nc
@@ -152,9 +142,6 @@ fi
 
 ncks -m -v sphum tmp_bkgtr.nc
 ncks -m -v sphum_inc tmp_bkgtr.nc
-ncks -m -v o3mr tmp_bkgtr.nc
-ncks -m -v o3mr_inc tmp_bkgtr.nc
-
 "${NCAP_BIN}" -O \
   -s "${addstr}" \
   tmp_bkgtr.nc "$OUTtr"
