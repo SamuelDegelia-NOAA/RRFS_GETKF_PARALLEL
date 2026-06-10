@@ -93,17 +93,6 @@ if [[ "${do_radar}" = "TRUE" ]]; then
   ncrename -v graupel,graupel_inc  tmp_inctr.nc
 fi
 
-# Rename tracer increment variables
-ncrename -v sphum,sphum_inc tmp_inctr.nc
-ncrename -v o3mr,o3mr_inc   tmp_inctr.nc
-if [[ "${do_radar}" = "TRUE" ]]; then
-  ncrename -v ice_wat,ice_wat_inc  tmp_inctr.nc
-  ncrename -v liq_wat,liq_wat_inc  tmp_inctr.nc
-  ncrename -v rainwat,rainwat_inc  tmp_inctr.nc
-  ncrename -v snowwat,snowwat_inc  tmp_inctr.nc
-  ncrename -v graupel,graupel_inc  tmp_inctr.nc
-fi
-
 # Harmonize known tracer increment dimension names
 if ncdump -h tmp_inctr.nc | grep -q 'yaxis_2 = '; then
   ncrename -d yaxis_2,yaxis_1 tmp_inctr.nc
@@ -124,9 +113,6 @@ if [[ "${do_radar}" = "TRUE" ]]; then
   append_vars="${append_vars},ice_wat_inc,liq_wat_inc,rainwat_inc,snowwat_inc,graupel_inc"
 fi
 ncks -A -v "${append_vars}" tmp_inctr.nc tmp_bkgtr.nc
-
-# Append increment vars into OUT
-ncks -A tmp_inctr.nc tmp_bkgtr.nc
 
 # Perform addition in place
 addstr="sphum=sphum+sphum_inc; o3mr=o3mr+o3mr_inc;"
