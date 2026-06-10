@@ -145,10 +145,10 @@ process_member() {
     "${apply_incs_script}" "${do_radar}" "${bkgdir}/fv_core.res.tile1.nc" "${bkgdir}/fv_tracer.res.tile1.nc" "${bkgdir}/phy_data.nc"
   )
 
-  cp -f "${workdir}/fv_core_analysis.res.tile1.nc" "${outdir}/fv_core.res.tile1.nc"
-  cp -f "${workdir}/fv_tracer_analysis.res.tile1.nc" "${outdir}/fv_tracer.res.tile1.nc"
+  mv -f "${workdir}/fv_core_analysis.res.tile1.nc" "${outdir}/fv_core.res.tile1.nc"
+  mv -f "${workdir}/fv_tracer_analysis.res.tile1.nc" "${outdir}/fv_tracer.res.tile1.nc"
   if [[ "${do_radar}" == "TRUE" && -f "${workdir}/phy_data_analysis.nc" ]]; then
-    cp -f "${workdir}/phy_data_analysis.nc" "${outdir}/phy_data.nc"
+    mv -f "${workdir}/phy_data_analysis.nc" "${outdir}/phy_data.nc"
   else
     cp -Lf "${bkgdir}/phy_data.nc" "${outdir}/phy_data.nc"
   fi
@@ -159,32 +159,15 @@ process_member() {
   echo "Completed post-processing for ${memcharv0}"
 }
 
-export anldir post_work_root post_out_root FIX_GSI PREDEF_GRID_NAME EXECdir do_radar apply_incs_script
-export -f process_member
-
-if [[ -n "${member_id}" ]]; then
-  if ! [[ "${member_id}" =~ ^[0-9]+$ ]] || (( member_id < 1 || member_id > nens )); then
-    echo "ERROR: invalid POST_INCS_MEMBER='${member_id}' for nens=${nens}"
-    exit 1
-  fi
-  process_member "${member_id}"
-else
-  parallel_jobs=${POST_INCS_PARALLEL_JOBS:-${nens}}
-  if ! [[ "${parallel_jobs}" =~ ^[0-9]+$ ]] || (( parallel_jobs < 1 )); then
-    echo "WARNING: invalid POST_INCS_PARALLEL_JOBS='${parallel_jobs}', using 1"
-    parallel_jobs=1
-  fi
-  if [[ "${PBS_NP:-}" =~ ^[0-9]+$ ]] && (( PBS_NP > 0 )); then
-    pbs_parallel_limit=${PBS_NP}
-    if [[ "${PBS_NUM_NODES:-}" =~ ^[0-9]+$ ]] && (( PBS_NUM_NODES > 0 )); then
-      pbs_parallel_limit=$(( PBS_NP * PBS_NUM_NODES ))
-    fi
-    if (( parallel_jobs > pbs_parallel_limit )); then
-      parallel_jobs=${pbs_parallel_limit}
-    fi
-  fi
-  seq 1 "${nens}" | parallel -j "${parallel_jobs}" --line-buffer --halt soon,fail=1 process_member
+if [[ -z "${member_id}" ]]; then
+  echo "ERROR: POST_INCS_MEMBER must be set for non-cleanup post-processing tasks"
+  exit 1
 fi
+if ! [[ "${member_id}" =~ ^[0-9]+$ ]] || (( member_id < 1 || member_id > nens )); then
+  echo "ERROR: invalid POST_INCS_MEMBER='${member_id}' for nens=${nens}"
+  exit 1
+fi
+process_member "${member_id}"
 
 echo "Post-processed FV3-LAM-ready restarts available under ${post_out_root}"
 

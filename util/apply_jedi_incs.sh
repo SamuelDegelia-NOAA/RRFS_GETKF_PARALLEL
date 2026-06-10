@@ -21,37 +21,15 @@ fi
 
 cleanup_tmp() {
   rm -f \
-    tmp_inc.nc tmp_bkg.nc tmp_inctr.nc tmp_bkgtr.nc tmp_incph.nc tmp_bkgph.nc \
-    work_inc_jedi.fv_core.res.nc work_inc_jedi.fv_tracer.res.nc
+    tmp_inc.nc tmp_bkg.nc tmp_inctr.nc tmp_bkgtr.nc tmp_incph.nc tmp_bkgph.nc
 }
 trap cleanup_tmp EXIT
 
 #####################################################################
-# 1. Convert doubles to floats
-#####################################################################
-files=(
-  inc_jedi.fv_core.res.nc
-  inc_jedi.fv_tracer.res.nc
-)
-
-for file in "${files[@]}"; do
-  work_file="work_${file}"
-  ncks -O "$file" "$work_file"
-
-  # Extract variable names declared as double from `ncks -m` metadata output.
-  mapfile -t vars < <(ncks -m "$work_file" | awk '/^ *double /{gsub("double",""); gsub("\\(.*",""); gsub(";",""); print $1}')
-
-  # Convert each variable to float (from double)
-  for v in "${vars[@]}"; do
-    "${NCAP_BIN}" -O -s "${v}=float(${v})" "$work_file" "$work_file"
-  done
-done
-
-#####################################################################
-# 2. Core background + increments
+# 1. Core background + increments
 #####################################################################
 BKG=${dynfile}
-INC=work_inc_jedi.fv_core.res.nc
+INC=inc_jedi.fv_core.res.nc
 OUT=fv_core_analysis.res.tile1.nc
 
 # Make Time a record dimension (unlimited dimension)
@@ -87,10 +65,10 @@ fi
 ncks -O -x -v ${varlist} "$OUT" "$OUT"
 
 #####################################################################
-# 3. Tracer background + increments
+# 2. Tracer background + increments
 #####################################################################
 BKGtr=${trafile}
-INCtr=work_inc_jedi.fv_tracer.res.nc
+INCtr=inc_jedi.fv_tracer.res.nc
 OUTtr=fv_tracer_analysis.res.tile1.nc
 
 # Make Time a record dimension (unlimited dimension)
@@ -109,6 +87,30 @@ if [[ "${do_radar}" = "TRUE" ]]; then
   ncrename -v snowwat,snowwat_inc  tmp_inctr.nc
   ncrename -v graupel,graupel_inc  tmp_inctr.nc
 fi
+
+# Align increment dimension names with background names (sizes must match).
+tracer_inc_vars=(sphum_inc o3mr_inc)
+if [[ "${do_radar}" = "TRUE" ]]; then
+  tracer_inc_vars+=(ice_wat_inc liq_wat_inc rainwat_inc snowwat_inc graupel_inc)
+fi
+for v in "${tracer_inc_vars[@]}"; do
+  bkg_v="${v%_inc}"
+  inc_dims=$(ncks -m -v "${v}" tmp_inctr.nc | awk -v var="${v}" 'index($0,var"("){s=$0; sub(/.*\(/,"",s); sub(/\).*/,"",s); gsub(/[[:space:]]/,"",s); print s; exit}')
+  bkg_dims=$(ncks -m -v "${bkg_v}" tmp_bkgtr.nc | awk -v var="${bkg_v}" 'index($0,var"("){s=$0; sub(/.*\(/,"",s); sub(/\).*/,"",s); gsub(/[[:space:]]/,"",s); print s; exit}')
+  if [[ -n "${inc_dims}" && -n "${bkg_dims}" ]]; then
+    IFS=',' read -r -a inc_dim_arr <<< "${inc_dims}"
+    IFS=',' read -r -a bkg_dim_arr <<< "${bkg_dims}"
+    if (( ${#inc_dim_arr[@]} == ${#bkg_dim_arr[@]} )); then
+      for i in "${!inc_dim_arr[@]}"; do
+        if [[ "${inc_dim_arr[$i]}" != "${bkg_dim_arr[$i]}" ]]; then
+          if ! ncks -m tmp_inctr.nc | grep -qE "^[[:space:]]*${bkg_dim_arr[$i]}[[:space:]]*="; then
+            ncrename -d "${inc_dim_arr[$i]},${bkg_dim_arr[$i]}" tmp_inctr.nc
+          fi
+        fi
+      done
+    fi
+  fi
+done
 
 # Append increment vars into OUT
 ncks -A tmp_inctr.nc tmp_bkgtr.nc
@@ -133,7 +135,7 @@ fi
 ncks -O -x -v ${varlist} "$OUTtr" "$OUTtr"
 
 #####################################################################
-# 4. Physics background + increments (only for radar DA)
+# 3. Physics background + increments (only for radar DA)
 #####################################################################
 if [[ "${do_radar}" = "TRUE" ]]; then
   BKGph=${phyfile}
