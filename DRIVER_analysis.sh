@@ -13,7 +13,7 @@
 
 # Clean up increments after done with analysis
 do_clean="TRUE"
-do_post_process_increments="${DO_POST_PROCESS_INCREMENTS:-TRUE}"
+do_post_process_increments="${DO_POST_PROCESS_INCREMENTS:-FALSE}"
 # Keep ensemble-mean increments for this many most-recent hourly cycles
 # when cleaning older cycle directories. Current-cycle ensemble-mean files
 # are preserved separately for verification.
