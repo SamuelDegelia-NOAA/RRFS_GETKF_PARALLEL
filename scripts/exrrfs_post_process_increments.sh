@@ -163,6 +163,7 @@ process_member() {
   cp -Lf "${bkgdir}/sfc_data.nc" "${outdir}/sfc_data.nc"
   cp -Lf "${bkgdir}/fv_srf_wnd.res.tile1.nc" "${outdir}/fv_srf_wnd.res.tile1.nc"
   cp -Lf "${bkgdir}/coupler.res" "${outdir}/coupler.res"
+  rm -rf "${workdir}"
 
   echo "Completed post-processing for ${memcharv0}"
 }

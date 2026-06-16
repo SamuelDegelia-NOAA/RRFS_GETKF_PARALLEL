@@ -13,7 +13,7 @@
 
 # Clean up increments after done with analysis
 do_clean="TRUE"
-do_post_process_increments="${DO_POST_PROCESS_INCREMENTS:-FALSE}"
+do_post_process_increments="${DO_POST_PROCESS_INCREMENTS:-TRUE}"
 # Keep ensemble-mean increments for this many most-recent hourly cycles
 # when cleaning older cycle directories. Current-cycle ensemble-mean files
 # are preserved separately for verification.
@@ -220,14 +220,7 @@ job5=""
 post_member_jobs=()
 if [ "${do_post_process_increments}" == "TRUE" ]; then
   # Post-process member increments after GETKF analysis succeeds using one PBS job per member.
-  nens="${nens:-}"
-  if ! [[ "${nens}" =~ ^[0-9]+$ ]] || (( nens < 1 )); then
-    nens=$(find "${enspath}" -maxdepth 1 -type d -name 'mem[0-9]*' | wc -l)
-  fi
-  if ! [[ "${nens}" =~ ^[0-9]+$ ]] || (( nens < 1 )); then
-    echo "ERROR: unable to determine ensemble size from ${enspath}"
-    exit 1
-  fi
+  nens="30"
   for imem in $(seq 1 "${nens}"); do
     mem3=$(printf "%03i" "${imem}")
     member_log="logs/post_incs_${YYYYMMDD}${HH}_mem${mem3}.log"
