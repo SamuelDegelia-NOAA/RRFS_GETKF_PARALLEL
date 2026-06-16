@@ -185,6 +185,7 @@ cp ./util/prep_ioda_cast.sh ${bufrdir}
 cp ./util/prep_phydata_dbz.py ${anldir}
 
 # Determine ensemble size once; used by both prep_getkf_mems and post_process_increments loops.
+# Member subdirectories under enspath follow the pattern m001, m002, ..., so search for m[0-9]*.
 nens="${nens:-}"
 if ! [[ "${nens}" =~ ^[0-9]+$ ]] || (( nens < 1 )); then
   nens=$(find "${enspath}" -maxdepth 1 -type d -name 'm[0-9]*' | wc -l)

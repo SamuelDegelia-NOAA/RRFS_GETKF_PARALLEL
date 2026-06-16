@@ -11,9 +11,9 @@
 ### Settings ###
 ################
 
-cd ${PBS_O_WORKDIR}
+cd "${PBS_O_WORKDIR}"
 set -euox pipefail
-echo ${envfile}
+echo "${envfile}"
 source "${envfile}"
 
 # Member index is supplied by the driver via PBS -v
