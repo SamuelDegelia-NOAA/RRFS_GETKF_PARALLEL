@@ -76,42 +76,10 @@ CDATE=${YYYYMMDD}${HH}
 #
 #-----------------------------------------------------------------------
 #
-# Loop through the members, link the background into run directory
+# Verify per-member input directories populated by the prep_getkf_mems task
 #
 #-----------------------------------------------------------------------
 #
-mkdir -p data/inputs
-for imem in  $(seq 1 $nens); do
-
-  memchar="mem"$(printf %04i $imem)
-  memcharv0="mem"$(printf %03i $imem)
-  mem3=$(printf %03i $imem)
-  slash_ensmem_subdir=$memchar
-  #bkpath=${cycle_dir}/${slash_ensmem_subdir}/fcst_fv3lam/INPUT
-  #bkpath=${enspath}/
-  bkpath=${enspath}/m${mem3}/forecast/RESTART
-  suffix=${YYYYMMDD}.${HH}0000.
-  BKTYPE=0              # warm start
-  mkdir -p data/inputs/${memcharv0}
-  ln -snf ${bkpath}/${suffix}fv_core.res.tile1.nc       data/inputs/${memcharv0}/fv_core.res.tile1.nc
-  ln -snf ${bkpath}/${suffix}fv_tracer.res.tile1.nc     data/inputs/${memcharv0}/fv_tracer.res.tile1.nc
-  ln -snf ${bkpath}/${suffix}sfc_data.nc                data/inputs/${memcharv0}/sfc_data.nc
-  ln -snf ${bkpath}/${suffix}phy_data.nc                data/inputs/${memcharv0}/phy_data.nc
-  ln -snf ${bkpath}/${suffix}fv_srf_wnd.res.tile1.nc    data/inputs/${memcharv0}/fv_srf_wnd.res.tile1.nc
-  ln -snf ${bkpath}/${suffix}coupler.res                data/inputs/${memcharv0}/coupler.res
-
-done
-
-#
-#-----------------------------------------------------------------------
-#
-# Pre-process the phy_data for reflectivity assimilation
-#
-#-----------------------------------------------------------------------
-#
-
-# Verify all input files exist before starting parallel processing
-echo "Verifying all input files are accessible..."
 max_retries=5
 retry_count=0
 files_missing=true
@@ -139,6 +107,14 @@ while [ "$files_missing" = true ] && [ $retry_count -lt $max_retries ]; do
 done
 
 echo "All input files verified successfully!"
+
+#
+#-----------------------------------------------------------------------
+#
+# Pre-process the phy_data for reflectivity assimilation
+#
+#-----------------------------------------------------------------------
+#
 echo "Extracting ref_f3d and running prep_phydata_dbz.py in parallel for all members..."
 for imem in $(seq 1 $nens); do
   memcharv0="mem"$(printf %03i $imem)

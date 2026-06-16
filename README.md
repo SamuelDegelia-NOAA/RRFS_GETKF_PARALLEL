@@ -2,12 +2,17 @@
 
 This tool performs a GETKF analysis whenever the staged RRFS Workflow ensemble becomes available.
 
-It only performs four tasks:
+It performs five tasks, with the first three running concurrently:
 
 1. Convert prepbufr observations to IODA format
 2. Generate reflectivity IODA observations from MRMS data
-3. Run a GETKF analysis
-4. Runs a GSI-based posterior observer to get O-a diagnostics from (3) 
+3. Copy per-member background files into `getkf.{cycle}/data/inputs/mem0XX` (30 parallel jobs, one per member)
+4. Run a GETKF analysis (depends on tasks 1, 2, and 3)
+5. Post-process GETKF member increments into FV3-LAM-ready restart files (optional, depends on task 4)
+
+Tasks 1–3 run concurrently so that observation preprocessing and member background preparation overlap.
+Background files are **copied** (not symlinked) into the per-member input directories so that future
+GETKF functionality can write analyses directly back into those files.
 
 It can either be run in standalone mode such as through:
 
