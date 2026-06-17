@@ -35,7 +35,6 @@ fi
 # remove only member-specific increment and prepdbz files.
 rm -f "${anldir}"/mem*/*nc
 rm -f "${anldir}"/data/inputs/mem*/*prepdbz
-rm -rf "${anldir}"/fv3lam_ready_restarts/mem*
 
 # Older-cycle cleanup: remove ensemble-mean increments once they are
 # outside the retention window.
@@ -67,6 +66,7 @@ for old_cycle_dir in "${baserundir}"/getkf.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0
   old_cycle=${old_cycle_dir##*.}
   if [[ "${old_cycle}" =~ ^[0-9]{10}$ ]] && ((10#${old_cycle} <= 10#${cutoff_cycle})); then
     rm -f "${old_cycle_dir}"/inc_jedi*nc
+    rm -rf "${old_cycle_dir}"/fv3lam_ready_restarts
   fi
 done
 shopt -u nullglob
