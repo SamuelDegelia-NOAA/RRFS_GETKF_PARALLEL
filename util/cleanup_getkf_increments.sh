@@ -35,7 +35,7 @@ fi
 # remove only member-specific increment and prepdbz files.
 rm -f "${anldir}"/mem*/*nc
 rm -f "${anldir}"/data/inputs/mem*/*prepdbz
-rm -f "${anldir}"/fv3lam_ready_restarts/mem*
+rm -rf "${anldir}"/fv3lam_ready_restarts/mem*
 
 # Older-cycle cleanup: remove ensemble-mean increments once they are
 # outside the retention window.
