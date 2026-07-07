@@ -219,10 +219,10 @@ sed -i '/^output ensemble increments:/,/^[^[:space:]]/ s/^\([[:space:]]*filetype
   write into existing files: false\
   default output resolution: 32bit/' "${jedi_yaml}"
 
-cp ${fixsimple}/../util/fix_satwnd_satellite_identifier.py .
-python fix_satwnd_satellite_identifier.py "${jedi_yaml}" "${jedi_yaml}.fixed" --rewrite-not-in
-cp "${jedi_yaml}" "${jedi_yaml}".orig
-mv "${jedi_yaml}.fixed" "${jedi_yaml}"
+#cp ${fixsimple}/../util/fix_satwnd_satellite_identifier.py .
+#python fix_satwnd_satellite_identifier.py "${jedi_yaml}" "${jedi_yaml}.fixed" --rewrite-not-in
+#cp "${jedi_yaml}" "${jedi_yaml}".orig
+#mv "${jedi_yaml}.fixed" "${jedi_yaml}"
 
 #
 #-----------------------------------------------------------------------
