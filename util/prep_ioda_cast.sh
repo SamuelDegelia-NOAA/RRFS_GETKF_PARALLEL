@@ -144,7 +144,7 @@ for var in "${vars[@]}"; do
   echo "==> Processing /${grp}/${var}"
 
   # Explicit exclusions
-  if [[ "$var" == "Location" || "$var" == "dateTime" ]]; then
+  if [[ "$var" == "Location" || "$var" == "dateTime" || "$var" == "satelliteIdentifier" ]]; then
     echo "  SKIP: excluded variable"
     echo
     continue
