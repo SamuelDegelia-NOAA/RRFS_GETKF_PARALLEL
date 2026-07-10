@@ -12,6 +12,8 @@ Current cycle:
 Older cycles:
   - remove ensemble-mean increment files inc_jedi*nc for
     getkf.YYYYMMDDHH directories <= cutoff cycle
+  - remove copied member background directories data/inputs/mem* for
+    getkf.YYYYMMDDHH directories <= cutoff cycle
 EOF
 }
 
@@ -66,7 +68,7 @@ for old_cycle_dir in "${baserundir}"/getkf.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0
   old_cycle=${old_cycle_dir##*.}
   if [[ "${old_cycle}" =~ ^[0-9]{10}$ ]] && ((10#${old_cycle} <= 10#${cutoff_cycle})); then
     rm -f "${old_cycle_dir}"/inc_jedi*nc
-    rm -rf "${old_cycle_dir}"/fv3lam_ready_restarts
+    rm -rf "${old_cycle_dir}"/data/inputs/mem*/
   fi
 done
 shopt -u nullglob
