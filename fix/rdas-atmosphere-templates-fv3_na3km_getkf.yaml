@@ -71,7 +71,7 @@ override_obs_distribution_localizations:
       lengthscale: 18e3
 
 # Driver
-driver_update_obs_config_with_geometry_info: false
+driver_update_obs_config_with_geometry_info: true
 driver_run_as_observer_only: false
 driver_read_HX_from_disk: false
 driver_do_posterior_observer: false
