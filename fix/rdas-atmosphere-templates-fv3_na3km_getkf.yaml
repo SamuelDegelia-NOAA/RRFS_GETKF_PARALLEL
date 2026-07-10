@@ -12,7 +12,7 @@ app_path_observation_chronicle: rdas/observation_chronicle/atmosphere
 # Places where we deviate from the generic file name of a yaml
 # ------------------------------------------------------------
 output_mean_prior_file: atmosphere_output_mean_prior
-posterior_output_file: atmosphere_output_mean_posterior
+posterior_output_file: atmosphere_output_ensemble_analyses
 output_increment_file: atmosphere_output_mean_increments
 output_ensemble_increments_file: atmosphere_output_ensemble_increments
 model_file: atmosphere_model_pseudo
@@ -24,6 +24,11 @@ window_length: PT6H
 bound_to_include: begin
 empty_obs_space_action: create output
 atmosphere_number_ensemble_members: 30
+
+# I/O things
+# ----------
+write_into_existing_files: true
+output_dgrid_winds: true
 
 # Local Ensemble DA (LETKF)
 # -------------------------
@@ -71,15 +76,15 @@ override_obs_distribution_localizations:
       lengthscale: 18e3
 
 # Driver
-driver_update_obs_config_with_geometry_info: false
+driver_update_obs_config_with_geometry_info: true
 driver_run_as_observer_only: false
 driver_read_HX_from_disk: false
 driver_do_posterior_observer: false
 driver_save_posterior_mean: false
-driver_save_posterior_ensemble: false
+driver_save_posterior_ensemble: true
 driver_save_prior_mean: false
-driver_save_posterior_mean_increment: true
-driver_save_posterior_ensemble_increments: true
+driver_save_posterior_mean_increment: false
+driver_save_posterior_ensemble_increments: false
 
 # Model things
 # ------------

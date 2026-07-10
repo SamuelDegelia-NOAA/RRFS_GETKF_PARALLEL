@@ -181,24 +181,11 @@ sed -i 's/do test prints: true/do test prints: false/' "${jedi_yaml}"
 # Turn off all jdiag outputs
 sed -i '/^[[:space:]]*obsdataout:/,+6 s/^/#/' "${jedi_yaml}"
 
-# Set additional I/O options from Dan Kokron's branch
-sed -i '/^background:/,/^[^[:space:]]/ s/^\([[:space:]]*filetype: fms restart\)$/\1\
-      regional restart: true/' "${jedi_yaml}"
-sed -i '/^output increment:/,/^[^[:space:]]/ s/^\([[:space:]]*filetype: fms restart\)$/\1\
-  regional restart: true\
-  lustre stripe size: 4194304\
-  write into existing files: false\
-  default output resolution: 32bit/' "${jedi_yaml}"
-sed -i '/^output ensemble increments:/,/^[^[:space:]]/ s/^\([[:space:]]*filetype: fms restart\)$/\1\
-  regional restart: true\
-  lustre stripe size: 4194304\
-  write into existing files: false\
-  default output resolution: 32bit/' "${jedi_yaml}"
-
 cp ${fixsimple}/../util/fix_satwnd_satellite_identifier.py .
 python fix_satwnd_satellite_identifier.py "${jedi_yaml}" "${jedi_yaml}.fixed" --rewrite-not-in
 cp "${jedi_yaml}" "${jedi_yaml}".orig
 mv "${jedi_yaml}.fixed" "${jedi_yaml}"
+
 
 #
 #-----------------------------------------------------------------------

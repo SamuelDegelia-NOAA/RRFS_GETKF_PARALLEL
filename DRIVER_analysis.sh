@@ -14,14 +14,14 @@
 
 # Clean up increments after done with analysis
 do_clean="TRUE"
-do_post_process_increments="${DO_POST_PROCESS_INCREMENTS:-TRUE}"
+do_post_process_increments="${DO_POST_PROCESS_INCREMENTS:-FALSE}"
 # Keep ensemble-mean increments for this many most-recent hourly cycles
 # when cleaning older cycle directories. Current-cycle ensemble-mean files
 # are preserved separately for verification.
 clean_ensmean_retention_cycles=24
 
 # Paths to local installs
-RDASApp=/lfs/h2/emc/da/noscrub/samuel.degelia/RDASApp_redist_fv3io/RDASApp
+RDASApp=/lfs/h2/emc/da/noscrub/samuel.degelia/RDASApp_redist_fv3io_dwind/RDASApp
 rrfsworkflow=/lfs/h2/emc/da/noscrub/samuel.degelia/rrfs-workflow_na3km/rrfs-workflow
 baserundir=/lfs/h2/emc/stmp/samuel.degelia/GETKF_PARALLEL
 
