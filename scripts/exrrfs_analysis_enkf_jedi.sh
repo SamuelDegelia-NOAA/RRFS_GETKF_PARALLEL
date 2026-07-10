@@ -265,7 +265,7 @@ mv errfile errfile_jedi_enkf
 #
 #-----------------------------------------------------------------------
 #
-if [ "${do_clean}" == "TRUE" ] && [ "${do_post_process_increments:-FALSE}" != "TRUE" ]; then
+if [ "${do_clean}" == "TRUE" ]; then
   cleanup_script="$(cd "$(dirname "$0")/.." && pwd)/util/cleanup_getkf_increments.sh"
   if [[ ! -f "${cleanup_script}" ]]; then
     echo "ERROR: cleanup utility script not found: ${cleanup_script}"
