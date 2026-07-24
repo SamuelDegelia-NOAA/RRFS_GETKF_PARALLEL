@@ -252,22 +252,9 @@ cp $pgmout ${COMOUT}/rrfs.${YYYYMMDDHH}.jediout.tm00
 #cp jedienkf_observer.yaml ${COMOUT}/jedienkf_observer.yaml
 mv errfile errfile_jedi_enkf
 
-#
-#-----------------------------------------------------------------------
-#
-# Clean up the increments after done running
-#
-#-----------------------------------------------------------------------
-#
-if [ "${do_clean}" == "TRUE" ]; then
-  cleanup_script="$(cd "$(dirname "$0")/.." && pwd)/util/cleanup_getkf_increments.sh"
-  if [[ ! -f "${cleanup_script}" ]]; then
-    echo "ERROR: cleanup utility script not found: ${cleanup_script}"
-    exit 1
-  fi
-  bash "${cleanup_script}" "${anldir}" "${baserundir}" "${YYYYMMDD}" "${HH}" "${clean_ensmean_retention_cycles:-24}"
-
-fi
-
+# NOTE: increment/rundir cleanup used to happen here, but this task is no
+# longer the last one in the workflow -- the exrrfs_postproc_getkf_mems.sh
+# (D-grid wind conversion) and exrrfs_postproc_getkf_cleanup.sh tasks now run
+# afterward, so cleanup has moved to exrrfs_postproc_getkf_cleanup.sh.
 
 echo "JEDI-EnKF PROCESS completed successfully!!!"

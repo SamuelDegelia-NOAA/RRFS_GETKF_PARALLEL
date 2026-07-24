@@ -5,8 +5,14 @@
 #   1. Run bufr2ioda.x to generate IODA observations including radar obs
 #   2. Generate reflectivity IODA observations from MRMS data
 #   3. Copy per-member background files into data/inputs/mem0XX (runs concurrently with tasks 1 and 2)
-#   4. Run GETKF analysis (depends on tasks 1, 2, and 3); writes analyses directly in-place into the
-#      background files copied in task 3, then cleans up increment files
+#   4. Run GETKF analysis (depends on tasks 1, 2, and 3); writes most analyzed variables directly
+#      in-place into the background files copied in task 3, and the analyzed A-grid wind into
+#      ua_anl/va_anl (leaving the original ua/va background and the D-grid u/v untouched)
+#   5. Post-process each member's analysis with rdas_ua2u.x --in_anl (depends on task 4; 30 jobs,
+#      one per member, run concurrently): convert ua_anl/va_anl to a D-grid wind increment, add it
+#      to the background u/v in place, and remove ua_anl/va_anl -- producing a complete,
+#      restart-ready analysis
+#   6. Clean up increment/rundir files (depends on all of task 5, since it is now the last step)
 
 ################
 ### Settings ###
@@ -87,6 +93,24 @@ PREP_GETKF_MEMS_SELECT="1:mpiprocs=1:ncpus=1:mem=20G"
 PREP_GETKF_MEMS_WALLTIME="00:15:00"
 PREP_GETKF_MEMS_PLACE="excl"
 
+# Post-process GETKF member analyses (rdas_ua2u.x --in_anl: convert the analyzed
+# A-grid wind to D-grid u/v in place, then drop ua_anl/va_anl; runs after GETKF,
+# one job per member, all 30 in parallel). rdas_ua2u.x's own work for this
+# operation is single-rank (MPI_Init still required) with OpenMP-threaded loops,
+# so ompthreads/ncpus give it some intra-node parallelism without needing more
+# than 1 mpiproc.
+POSTPROC_GETKF_MEMS_JOB_NAME="na3km_postproc_getkf_mems"
+POSTPROC_GETKF_MEMS_SELECT="1:mpiprocs=1:ompthreads=8:ncpus=8:mem=20G"
+POSTPROC_GETKF_MEMS_WALLTIME="00:15:00"
+POSTPROC_GETKF_MEMS_PLACE="excl"
+
+# Final cleanup, now that D-grid wind post-processing (not the GETKF task) is
+# the last step in the workflow. Runs once, after all POSTPROC_GETKF_MEMS jobs.
+POSTPROC_CLEANUP_JOB_NAME="na3km_postproc_getkf_cleanup"
+POSTPROC_CLEANUP_SELECT="1:mpiprocs=1:ncpus=1:mem=4G"
+POSTPROC_CLEANUP_WALLTIME="00:10:00"
+POSTPROC_CLEANUP_PLACE="excl"
+
 # Get number of nodes and tasks to pass into the scripts
 RADAR_PBS_NP=$(echo "${RADAR_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
 RADAR_PBS_NUM_NODES=$(echo "${RADAR_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
@@ -96,6 +120,11 @@ GETKF_PBS_NP=$(echo "${GETKF_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
 GETKF_PBS_NUM_NODES=$(echo "${GETKF_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
 PREP_GETKF_MEMS_PBS_NP=$(echo "${PREP_GETKF_MEMS_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
 PREP_GETKF_MEMS_PBS_NUM_NODES=$(echo "${PREP_GETKF_MEMS_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
+POSTPROC_GETKF_MEMS_PBS_NP=$(echo "${POSTPROC_GETKF_MEMS_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
+POSTPROC_GETKF_MEMS_PBS_NUM_NODES=$(echo "${POSTPROC_GETKF_MEMS_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
+POSTPROC_GETKF_MEMS_PBS_OMPTHREADS=$(echo "${POSTPROC_GETKF_MEMS_SELECT}" | grep -oP 'ompthreads\s*=\s*\K[0-9]+')
+POSTPROC_CLEANUP_PBS_NP=$(echo "${POSTPROC_CLEANUP_SELECT}" | grep -oP 'mpiprocs\s*=\s*\K[0-9]+')
+POSTPROC_CLEANUP_PBS_NUM_NODES=$(echo "${POSTPROC_CLEANUP_SELECT}" | grep -oP '^\s*\K[0-9]+(?=\s*:)')
 
 # NOTE: the enspath contains RESTART files for the next forecast hour
 # So enkfrrfs.20260416/15 contains the restart files for 2026041616
@@ -126,6 +155,7 @@ RADAR_LOG="logs/mrms_${YYYYMMDD}${HH}.log"
 BUFR_LOG="logs/bufr_${YYYYMMDD}${HH}.log"
 GETKF_LOG="logs/getkf_${YYYYMMDD}${HH}.log"
 PREP_GETKF_MEMS_LOG="logs/prep_getkf_mems_${YYYYMMDD}${HH}.log"
+POSTPROC_CLEANUP_LOG="logs/postproc_getkf_cleanup_${YYYYMMDD}${HH}.log"
 
 # Export the variables we will need in other tasks.
 # Use a cycle-unique absolute path so concurrent cycles cannot overwrite each other.
@@ -246,9 +276,48 @@ job3=$(bash "${submit}" \
     -W "depend=afterok:${job1}:${job2}:${prep_getkf_mems_dep}" \
     "${script_dir}/scripts/exrrfs_analysis_enkf_jedi.sh")
 
-echo "Submitted jobs: radar=${job1} bufr=${job2} prep_getkf_mems_first=${prep_getkf_mems_jobs[0]} getkf=${job3}"
+# Post-process each member's analysis (D-grid wind conversion) after GETKF
+# completes. These 30 jobs run concurrently, one per member.
+postproc_getkf_mems_jobs=()
+for imem in $(seq 1 "${nens}"); do
+  mem3=$(printf "%03i" "${imem}")
+  member_log="logs/postproc_getkf_mems_${YYYYMMDD}${HH}_mem${mem3}.log"
+  member_job_name="${POSTPROC_GETKF_MEMS_JOB_NAME}_m${mem3}"
+  member_job=$(bash "${submit}" \
+      -N "${member_job_name}" \
+      -A "${PBS_ACCOUNT}" \
+      -q "${PBS_QUEUE}" \
+      -l "select=${POSTPROC_GETKF_MEMS_SELECT}" \
+      -l "walltime=${POSTPROC_GETKF_MEMS_WALLTIME}" \
+      -l "place=${POSTPROC_GETKF_MEMS_PLACE}" \
+      -o "${member_log}" \
+      -v "envfile=${envfile}" \
+      -v "PBS_NP=${POSTPROC_GETKF_MEMS_PBS_NP},PBS_NUM_NODES=${POSTPROC_GETKF_MEMS_PBS_NUM_NODES}" \
+      -v "OMP_NUM_THREADS=${POSTPROC_GETKF_MEMS_PBS_OMPTHREADS}" \
+      -v "POSTPROC_GETKF_MEMBER=${imem}" \
+      -W "depend=afterok:${job3}" \
+      "${script_dir}/scripts/exrrfs_postproc_getkf_mems.sh")
+  postproc_getkf_mems_jobs+=("${member_job}")
+done
+postproc_getkf_mems_dep=$(IFS=:; echo "${postproc_getkf_mems_jobs[*]}")
 
-job_list=("${job1}" "${job2}" "${prep_getkf_mems_jobs[@]}" "${job3}")
+# Final cleanup, once all per-member post-processing jobs complete successfully
+job4=$(bash "${submit}" \
+    -N "${POSTPROC_CLEANUP_JOB_NAME}" \
+    -A "${PBS_ACCOUNT}" \
+    -q "${PBS_QUEUE}" \
+    -l "select=${POSTPROC_CLEANUP_SELECT}" \
+    -l "walltime=${POSTPROC_CLEANUP_WALLTIME}" \
+    -l "place=${POSTPROC_CLEANUP_PLACE}" \
+    -o "${POSTPROC_CLEANUP_LOG}" \
+    -v "envfile=${envfile}" \
+    -v "PBS_NP=${POSTPROC_CLEANUP_PBS_NP},PBS_NUM_NODES=${POSTPROC_CLEANUP_PBS_NUM_NODES}" \
+    -W "depend=afterok:${postproc_getkf_mems_dep}" \
+    "${script_dir}/scripts/exrrfs_postproc_getkf_cleanup.sh")
+
+echo "Submitted jobs: radar=${job1} bufr=${job2} prep_getkf_mems_first=${prep_getkf_mems_jobs[0]} getkf=${job3} postproc_getkf_mems_first=${postproc_getkf_mems_jobs[0]} cleanup=${job4}"
+
+job_list=("${job1}" "${job2}" "${prep_getkf_mems_jobs[@]}" "${job3}" "${postproc_getkf_mems_jobs[@]}" "${job4}")
 
 # Wait for all jobs to complete
 while true; do

@@ -14,7 +14,7 @@ app_path_observation_chronicle: rdas/observation_chronicle/atmosphere
 output_mean_prior_file: atmosphere_output_mean_prior
 posterior_output_file: atmosphere_output_ensemble_analyses
 output_increment_file: atmosphere_output_mean_increments
-output_ensemble_increments_file: atmosphere_output_ensemble_increments
+output_ensemble_increments_file: atmosphere_output_ensemble_increments # not used
 model_file: atmosphere_model_pseudo
 initial_condition_file: atmosphere_background
 
@@ -28,7 +28,6 @@ atmosphere_number_ensemble_members: 30
 # I/O things
 # ----------
 write_into_existing_files: true
-output_dgrid_winds: true
 
 # Local Ensemble DA (LETKF)
 # -------------------------
