@@ -181,12 +181,6 @@ sed -i 's/do test prints: true/do test prints: false/' "${jedi_yaml}"
 # Turn off all jdiag outputs
 sed -i '/^[[:space:]]*obsdataout:/,+6 s/^/#/' "${jedi_yaml}"
 
-cp ${fixsimple}/../util/fix_satwnd_satellite_identifier.py .
-python fix_satwnd_satellite_identifier.py "${jedi_yaml}" "${jedi_yaml}.fixed" --rewrite-not-in
-cp "${jedi_yaml}" "${jedi_yaml}".orig
-mv "${jedi_yaml}.fixed" "${jedi_yaml}"
-
-
 #
 #-----------------------------------------------------------------------
 #
