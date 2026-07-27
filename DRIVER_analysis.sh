@@ -26,7 +26,8 @@ do_clean="TRUE"
 clean_ensmean_retention_cycles=24
 
 # Paths to local installs
-RDASApp=/lfs/h2/emc/da/noscrub/samuel.degelia/RDASApp_redist_fv3io_dwind/RDASApp
+#RDASApp=/lfs/h2/emc/da/noscrub/samuel.degelia/RDASApp_redist_fv3io_dwind/RDASApp
+RDASApp=/lfs/h2/emc/da/noscrub/samuel.degelia/RDASApp_oopsbranchonestep_uarename/RDASApp
 rrfsworkflow=/lfs/h2/emc/da/noscrub/samuel.degelia/rrfs-workflow_na3km/rrfs-workflow
 baserundir=/lfs/h2/emc/stmp/samuel.degelia/GETKF_PARALLEL
 
