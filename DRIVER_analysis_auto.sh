@@ -2,7 +2,8 @@
 
 max_run_cycles=3
 
-rrfspath=${RRFSPATH:-/lfs/h1/ops/para/com/rrfs/v1.0}
+#rrfspath=${RRFSPATH:-/lfs/h1/ops/para/com/rrfs/v1.0}
+rrfspath=${RRFSPATH:-/lfs/h1/ops/prod/com/rrfs/v1.0}
 baserundir=${BASERUNDIR:-/lfs/h2/emc/stmp/samuel.degelia/GETKF_PARALLEL}
 max_run_cycles=${MAX_RUN_CYCLES:-3}
 dispatch_lock=${baserundir}/.enspath_dispatch_lock

@@ -36,7 +36,8 @@ getkfyaml=/lfs/h2/emc/da/noscrub/samuel.degelia/parallel_getkf/fix/rdas-atmosphe
 
 # Paths to RRFS ensemble and observations in realtime (wont change)
 installdir=/lfs/h2/emc/da/noscrub/samuel.degelia/parallel_getkf # where this script lives
-rrfspath=/lfs/h1/ops/para/com/rrfs/v1.0
+#rrfspath=/lfs/h1/ops/para/com/rrfs/v1.0
+rrfspath=/lfs/h1/ops/prod/com/rrfs/v1.0
 reflpath=/lfs/h1/ops/prod/dcom/ldmdata/obs/upperair/mrms/conus/MergedReflectivityQC
 obsbase=/lfs/h1/ops/prod/com/obsproc/v1.2
 
