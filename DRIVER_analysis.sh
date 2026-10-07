@@ -25,10 +25,12 @@ do_clean="TRUE"
 # are preserved separately for verification.
 clean_ensmean_retention_cycles=24
 
+# The below RDASApp points to develop for RDASApp
+#   but OOPS in it points to feature/letkf-getkf-memory-subset_redist-pr
+
 # Paths to local installs
-#RDASApp=/lfs/h2/emc/da/noscrub/samuel.degelia/RDASApp_redist_fv3io_dwind/RDASApp
-RDASApp=/lfs/h2/emc/da/noscrub/samuel.degelia/RDASApp_oopsbranchonestep_uarename/RDASApp
-rrfsworkflow=/lfs/h2/emc/da/noscrub/samuel.degelia/rrfs-workflow_onestep/rrfs-workflow
+RDASApp=/lfs/h2/emc/da/noscrub/samuel.degelia/RDASApp_memoryimprovements/RDASApp
+rrfsworkflow=/lfs/h2/emc/da/noscrub/samuel.degelia/rrfs-workflow
 baserundir=/lfs/h2/emc/stmp/samuel.degelia/GETKF_PARALLEL
 
 # GETKF config

@@ -45,6 +45,8 @@ export MPICH_OFI_VERBOSE=1
 export MPICH_MPIIO_HINTS='*.tile1.nc:romio_cb_read=disable,*.sfc_data.nc:romio_cb_read=disable,*.phy_data.nc:romio_cb_read=disable,*.fv_*.res.nc:romio_cb_write=disable,*.sfc_data.nc:romio_cb_write=disable'
 export OMP_STACKSIZE=500M
 export OMP_NUM_THREADS=1 #${TPP_RUN_ANALYSIS}
+export MALLOC_MMAP_THRESHOLD_=1048576
+export MALLOC_TRIM_THRESHOLD_=1048576
 
 # Compute depth
 export ntasks=$( wc -l $PBS_NODEFILE | awk '{print $1}')
