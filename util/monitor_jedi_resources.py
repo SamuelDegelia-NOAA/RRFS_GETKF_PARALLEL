@@ -14,9 +14,9 @@ from datetime import datetime, timedelta
 outdir = '.'
 overlay_gsi = True
 logdir = '/lfs/h2/emc/da/noscrub/samuel.degelia/parallel_getkf/logs'
-gsi_logdir = '/lfs/h1/ops/para/output'
-start_cycle = '2026051700'
-end_cycle = '2026052200'
+gsi_logdir = '/lfs/h1/ops/prod/output'
+start_cycle = '2026100600'
+end_cycle = '2026100715'
 if len(sys.argv) > 2:
     start_cycle = sys.argv[1]
     end_cycle = sys.argv[2]
@@ -94,6 +94,8 @@ def _parse_jedi_cycle(logfile, timestr):
                     cyc_radar += count
                 else:
                     cyc_conv  += count
+
+    print(cyc_runtime, cyc_memory)
 
     return (
         cyc_runtime,
@@ -338,7 +340,7 @@ _make_dual_axis_plot(
     left_color='steelblue',
     right_color='darkorange',
     left_yrange=[0, 3500],
-    right_yrange=[0, 30000],
+    right_yrange=[0, 20000],
     left_label='JEDI Runtime',
     right_label='JEDI Max Memory',
     left_overlay_values=gsi_runtime if overlay_gsi else None,
